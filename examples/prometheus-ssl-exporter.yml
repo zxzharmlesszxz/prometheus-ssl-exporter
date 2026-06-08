@@ -1,0 +1,10 @@
+# Remote target item keys:
+# - address: required remote host name or IP address
+# - port: 443
+# - server_name: optional TLS SNI and verification name; alias: sni
+# - ca: optional CA bundle path
+#
+# File target item keys:
+# - file: required certificate file path
+# - ca: optional CA bundle path
+targets: []
