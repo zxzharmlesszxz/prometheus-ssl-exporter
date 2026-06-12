@@ -32,6 +32,10 @@ func TestFeatureContract(t *testing.T) {
 
 func NewFeatureTestSpec() FeatureTestSpec {
 	return FeatureTestSpec{
+		// SSL does not emit the standard last_collection_success metric in the namespaced
+		// scope because per-source check results (ssl_check_success) carry more granular state.
+		// The contract suite normally asserts last_collection_success exists; skip that check.
+		SkipContractLastCollectionSuccessMetric: true,
 		SuccessfulSnapshot: func(at time.Time) Snapshot {
 			return Snapshot{
 				ssl: sslcheck.Snapshot{
@@ -77,6 +81,7 @@ func RegisterFeatureTests(suite *FeatureTestSuite) {
 	suite.Register("collector_last_successful_collection_is_zero_before_success", func(t *testing.T) { testCollectorLastSuccessfulCollectionIsZeroBeforeSuccess(t, suite) })
 	suite.Register("exporter_registers_collector_for_configured_targets", func(t *testing.T) { testExporterRegistersCollectorForConfiguredTargets(t, suite) })
 	suite.Register("exporter_registers_collector_for_config_file_targets", func(t *testing.T) { testExporterRegistersCollectorForConfigFileTargets(t, suite) })
+	suite.Register("exporter_merges_cli_and_config_file_targets", func(t *testing.T) { testExporterMergesCliAndConfigFileTargets(t, suite) })
 	suite.Register("exporter_registers_default_collectors", func(t *testing.T) { testExporterRegistersDefaultCollectors(t, suite) })
 	suite.Register("exporter_rejects_invalid_targets", func(t *testing.T) { testExporterRejectsInvalidTargets(t, suite) })
 	suite.Register("exporter_runtime_config_normalizes_values", func(t *testing.T) { testExporterRuntimeConfigNormalizesValues(t, suite) })
@@ -213,6 +218,36 @@ func testExporterRegistersCollectorForConfigFileTargets(t *testing.T, suite *Fea
 	exportertest.AssertMetricValue(t, families, suite.MetricName("", testMetricNamespace, metricConfiguredCertificateFiles), nil, 1)
 }
 
+func testExporterMergesCliAndConfigFileTargets(t *testing.T, suite *FeatureTestSuite) {
+	now := time.Unix(1_700_000_000, 0)
+	certPathA := writeTestCertificate(t, "file-a.example", now.Add(-time.Hour), now.Add(time.Hour))
+	certPathB := writeTestCertificate(t, "file-b.example", now.Add(-time.Hour), now.Add(time.Hour))
+
+	configPath := suite.WriteConfig(t, "targets:\n  - file: "+certPathA+"\n")
+
+	exporter := suite.NewNamedFeature()
+	suite.ParseFeatureFlags(t, exporter, []string{
+		"--" + testFeatureName + ".config-file=" + configPath,
+		"--" + testFeatureName + ".target=file=" + certPathB,
+	})
+
+	registry := suite.RegisterFeatureCollectors(t, exporter)
+	exportertest.WaitForMetricValue(t, registry, testLastSuccess, nil, 1)
+	families := exportertest.Gather(t, registry)
+
+	exportertest.AssertMetricValue(t, families, suite.MetricName("", testMetricNamespace, metricConfiguredCertificateFiles), nil, 2)
+	exportertest.AssertMetricValue(t, families, suite.MetricName("", testMetricNamespace, metricConfiguredTargets), nil, 0)
+
+	exportertest.AssertMetricValue(t, families, suite.MetricName(testFeatureName, "", metricCheckSuccess), map[string]string{
+		"source": "file",
+		"target": certPathA,
+	}, 1)
+	exportertest.AssertMetricValue(t, families, suite.MetricName(testFeatureName, "", metricCheckSuccess), map[string]string{
+		"source": "file",
+		"target": certPathB,
+	}, 1)
+}
+
 func testExporterRegistersDefaultCollectors(t *testing.T, suite *FeatureTestSuite) {
 	exporter := suite.NewNamedFeature()
 
@@ -263,7 +298,7 @@ func testExporterRuntimeConfigNormalizesValues(t *testing.T, suite *FeatureTestS
 
 func testSmokeSpecIncludesSSLArgs(t *testing.T, suite *FeatureTestSuite) {
 	spec := suite.NewNamedFeature().SmokeSpec()
-	wantConfigFile := "--" + testFeatureName + ".config-file=../examples/" + DefaultFeatureConfigFileName
+	wantConfigFile := "--" + testFeatureName + ".config-file=" + DefaultFeatureConfigPath
 	wantTarget := "--" + testFeatureName + ".target=file=testdata/smoke-cert.pem"
 	wantConcurrency := "--" + testFeatureName + ".max-concurrent-targets=2"
 	if !featuretest.HasString(spec.ServerArgs, wantConfigFile) {

@@ -59,6 +59,8 @@ github.com/zxzharmlesszxz/prometheus-exporter-framework v0.2.10 h1:PUr4etZFZk0Kq
 github.com/zxzharmlesszxz/prometheus-exporter-framework v0.2.10/go.mod h1:Y8zB+/u6guNYhYvYOzssXhXyIz0+ker73nBT+2oxMAA=
 github.com/zxzharmlesszxz/prometheus-exporter-framework v0.2.11 h1:RFs4SUrcqgV2VCyoyZFqE45mXEE9Z1nHFyr42EbMybE=
 github.com/zxzharmlesszxz/prometheus-exporter-framework v0.2.11/go.mod h1:KpmJ9CSqVaweqXnVoEy2innHikLL9SnkSbHj4UXXjj4=
+github.com/zxzharmlesszxz/prometheus-exporter-framework v0.2.12 h1:mWAbWRbSg7iT6yJUcLdBp/tIbae5lHA0StDXNX0gVTM=
+github.com/zxzharmlesszxz/prometheus-exporter-framework v0.2.12/go.mod h1:aPy1JfPEGP7N9VKnPyPlv+oTCfjtXrTpz67DSWzOYys=
 go.uber.org/goleak v1.3.0 h1:2K3zAYmnTNqV73imy9J1T3WC+gmCePx2hEGkimedGto=
 go.uber.org/goleak v1.3.0/go.mod h1:CoHD4mav9JJNrW/WLlf7HGZPjdw8EucARQHekz1X6bE=
 go.yaml.in/yaml/v2 v2.4.4 h1:tuyd0P+2Ont/d6e2rl3be67goVK4R6deVxCUX5vyPaQ=
@@ -69,6 +71,8 @@ golang.org/x/crypto v0.53.0 h1:QZ4Muo8THX6CizN2vPPd5fBGHyogrdK9fG4wLPFUsto=
 golang.org/x/crypto v0.53.0/go.mod h1:DNLU434OwVakk9PzuwV8w62mAJpRJL3vsgcfp4Qnsio=
 golang.org/x/net v0.55.0 h1:bcvxaJn3e1U6InsFWt1JUq1aSjnRxLzT2rtD2KfkDF8=
 golang.org/x/net v0.55.0/go.mod h1:L5U2KuzuOe1lY7Z+aWVIKK6qEeJXnXV9yzGA+WCHJww=
+golang.org/x/net v0.56.0 h1:Rw8j/hFzGvJUZwNBXnAtf5sVDVt+65SK2C7IxCxZt5o=
+golang.org/x/net v0.56.0/go.mod h1:D3Ku6r+V6JROoZK144D2XfMHFcMq/0zSfLelVTCFKec=
 golang.org/x/oauth2 v0.36.0 h1:peZ/1z27fi9hUOFCAZaHyrpWG5lwe0RJEEEeH0ThlIs=
 golang.org/x/oauth2 v0.36.0/go.mod h1:YDBUJMTkDnJS+A4BP4eZBjCqtokkg1hODuPjwiGPO7Q=
 golang.org/x/sync v0.20.0 h1:e0PTpb7pjO8GAtTs2dQ6jYa5BWYlMuX047Dco/pItO4=

@@ -35,8 +35,8 @@
         "kind": "Panel",
         "spec": {
           "id": 1,
-          "title": "Collection Status",
-          "description": "",
+          "title": "Full Collection Success",
+          "description": "Whether the last SSL certificate collection succeeded for every configured source",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -55,7 +55,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "sum(ssl_exporter_last_collection_success{job=\"$job\"}) / count(ssl_exporter_last_collection_success{job=\"$job\"})",
+                        "expr": "sum(ssl_exporter_last_collection_success{job=~\"$job\"}) / count(ssl_exporter_last_collection_success{job=~\"$job\"})",
                         "instant": true,
                         "legendFormat": "success",
                         "range": false
@@ -152,7 +152,7 @@
         "spec": {
           "id": 10,
           "title": "Last Successful Refresh Age",
-          "description": "",
+          "description": "Time elapsed since the last fully successful SSL certificate collection",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -171,7 +171,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "avg(time() - (ssl_exporter_last_successful_collection_timestamp_seconds{job=\"$job\"} > 0))",
+                        "expr": "avg(time() - (ssl_exporter_last_successful_collection_timestamp_seconds{job=~\"$job\"} > 0))",
                         "instant": true,
                         "legendFormat": "age",
                         "range": false
@@ -243,7 +243,7 @@
         "spec": {
           "id": 11,
           "title": "Exporter Runtime Snapshot",
-          "description": "",
+          "description": "Exporter process runtime information including version, branch, uptime, memory, goroutines, open file descriptors, and scrape duration",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -261,7 +261,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "ssl_exporter_build_info{job=\"$job\"}",
+                        "expr": "ssl_exporter_build_info{job=~\"$job\"}",
                         "format": "table",
                         "instant": true,
                         "legendFormat": "__auto",
@@ -284,7 +284,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "time() - process_start_time_seconds{job=\"$job\"}",
+                        "expr": "time() - process_start_time_seconds{job=~\"$job\"}",
                         "format": "table",
                         "instant": true,
                         "legendFormat": "__auto",
@@ -307,7 +307,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "process_resident_memory_bytes{job=\"$job\"} / 1024 / 1024",
+                        "expr": "process_resident_memory_bytes{job=~\"$job\"} / 1024 / 1024",
                         "format": "table",
                         "instant": true,
                         "legendFormat": "__auto",
@@ -330,7 +330,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "go_goroutines{job=\"$job\"}",
+                        "expr": "go_goroutines{job=~\"$job\"}",
                         "format": "table",
                         "instant": true,
                         "legendFormat": "__auto",
@@ -353,7 +353,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "process_open_fds{job=\"$job\"}",
+                        "expr": "process_open_fds{job=~\"$job\"}",
                         "format": "table",
                         "instant": true,
                         "legendFormat": "__auto",
@@ -361,6 +361,29 @@
                       }
                     },
                     "refId": "E",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${DS_PROMETHEUS}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "scrape_duration_seconds{job=~\"$job\"}",
+                        "format": "table",
+                        "instant": true,
+                        "legendFormat": "__auto",
+                        "range": false
+                      }
+                    },
+                    "refId": "F",
                     "hidden": false
                   }
                 }
@@ -395,12 +418,7 @@
                         "__name__ 2": true,
                         "__name__ 3": true,
                         "__name__ 4": true,
-                        "branch": true,
-                        "environment 1": true,
-                        "environment 2": true,
-                        "environment 3": true,
-                        "environment 4": true,
-                        "environment 5": true,
+                        "__name__ 5": true,
                         "goarch": true,
                         "goos": true,
                         "goversion": true,
@@ -414,19 +432,22 @@
                       },
                       "includeByName": {},
                       "indexByName": {
-                        "Value #B": 3,
-                        "Value #C": 4,
-                        "Value #D": 5,
-                        "Value #E": 6,
                         "instance": 0,
+                        "version": 1,
                         "revision": 2,
-                        "version": 1
+                        "branch": 3,
+                        "Value #B": 4,
+                        "Value #C": 5,
+                        "Value #D": 6,
+                        "Value #E": 7,
+                        "Value #F": 8
                       },
                       "renameByName": {
                         "Value #B": "uptime",
                         "Value #C": "rss_mb",
                         "Value #D": "goroutines",
-                        "Value #E": "open_fds"
+                        "Value #E": "open_fds",
+                        "Value #F": "scrape_duration"
                       }
                     }
                   }
@@ -527,7 +548,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "rate(process_cpu_seconds_total{job=\"$job\"}[5m]) * 100",
+                        "expr": "rate(process_cpu_seconds_total{job=~\"$job\"}[5m]) * 100",
                         "legendFormat": "{{instance}} cpu",
                         "range": true
                       }
@@ -644,7 +665,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "process_resident_memory_bytes{job=\"$job\"} / 1024 / 1024",
+                        "expr": "process_resident_memory_bytes{job=~\"$job\"} / 1024 / 1024",
                         "legendFormat": "{{instance}} rss",
                         "range": true
                       }
@@ -761,7 +782,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "go_memstats_heap_alloc_bytes{job=\"$job\"} / 1024 / 1024",
+                        "expr": "go_memstats_heap_alloc_bytes{job=~\"$job\"} / 1024 / 1024",
                         "legendFormat": "{{instance}} alloc",
                         "range": true
                       }
@@ -782,7 +803,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "go_memstats_heap_inuse_bytes{job=\"$job\"} / 1024 / 1024",
+                        "expr": "go_memstats_heap_inuse_bytes{job=~\"$job\"} / 1024 / 1024",
                         "legendFormat": "{{instance}} in use",
                         "range": true
                       }
@@ -803,7 +824,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "go_memstats_heap_idle_bytes{job=\"$job\"} / 1024 / 1024",
+                        "expr": "go_memstats_heap_idle_bytes{job=~\"$job\"} / 1024 / 1024",
                         "legendFormat": "{{instance}} idle",
                         "range": true
                       }
@@ -824,7 +845,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "go_memstats_heap_released_bytes{job=\"$job\"} / 1024 / 1024",
+                        "expr": "go_memstats_heap_released_bytes{job=~\"$job\"} / 1024 / 1024",
                         "legendFormat": "{{instance}} released",
                         "range": true
                       }
@@ -941,7 +962,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "rate(go_gc_duration_seconds_count{job=\"$job\"}[5m])",
+                        "expr": "rate(go_gc_duration_seconds_count{job=~\"$job\"}[5m])",
                         "legendFormat": "{{instance}} gc/s",
                         "range": true
                       }
@@ -1058,7 +1079,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "up{job=\"$job\"}",
+                        "expr": "up{job=~\"$job\"}",
                         "legendFormat": "{{instance}} up",
                         "range": true
                       }
@@ -1179,7 +1200,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "scrape_duration_seconds{job=\"$job\"}",
+                        "expr": "scrape_duration_seconds{job=~\"$job\"}",
                         "legendFormat": "{{instance}} duration",
                         "range": true
                       }
@@ -1296,7 +1317,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "scrape_samples_post_metric_relabeling{job=\"$job\"}",
+                        "expr": "scrape_samples_post_metric_relabeling{job=~\"$job\"}",
                         "legendFormat": "{{instance}} samples",
                         "range": true
                       }
@@ -1413,7 +1434,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "changes(ssl_check_success{job=\"$job\"}[24h])",
+                        "expr": "changes(ssl_check_success{job=~\"$job\"}[24h])",
                         "legendFormat": "{{instance}} {{source}} {{target}}",
                         "range": true,
                         "instant": false
@@ -1508,7 +1529,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "changes(ssl_certificate_chain_verified{job=\"$job\"}[24h])",
+                        "expr": "changes(ssl_certificate_chain_verified{job=~\"$job\"}[24h])",
                         "legendFormat": "{{instance}} {{source}} {{target}}",
                         "range": true,
                         "instant": false
@@ -1603,7 +1624,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "changes(ssl_certificate_temporarily_valid{job=\"$job\",chain_index=\"0\"}[24h])",
+                        "expr": "changes(ssl_certificate_temporarily_valid{job=~\"$job\",chain_index=\"0\"}[24h])",
                         "legendFormat": "{{instance}} {{source}} {{target}}",
                         "range": true,
                         "instant": false
@@ -1675,6 +1696,99 @@
           }
         }
       },
+      "panel-36": {
+        "kind": "Panel",
+        "spec": {
+          "id": 36,
+          "title": "Problem Targets",
+          "description": "Configured SSL sources that failed collection, including unresolvable domains, connection failures, TLS handshake failures, or unreadable certificate files",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${DS_PROMETHEUS}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "exemplar": false,
+                        "expr": "ssl_check_success{job=~\"$job\"} == 0",
+                        "format": "table",
+                        "instant": true,
+                        "legendFormat": "__auto",
+                        "range": false
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [
+                {
+                  "kind": "Transformation",
+                  "group": "organize",
+                  "spec": {
+                    "options": {
+                      "excludeByName": {
+                        "Time": true,
+                        "Value": true
+                      },
+                      "indexByName": {
+                        "Time": 0,
+                        "source": 1,
+                        "target": 2,
+                        "instance": 3,
+                        "job": 4,
+                        "__name__": 5,
+                        "Value": 6
+                      },
+                      "renameByName": {
+                        "__name__": "metric"
+                      },
+                      "includeByName": {}
+                    }
+                  }
+                }
+              ],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "table",
+            "version": "13.0.1",
+            "spec": {
+              "options": {
+                "cellHeight": "sm",
+                "enablePagination": false,
+                "showHeader": true,
+                "sortBy": []
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "custom": {
+                    "align": "auto",
+                    "cellOptions": {
+                      "type": "auto"
+                    },
+                    "filterable": true,
+                    "inspect": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
       "panel-26": {
         "kind": "Panel",
         "spec": {
@@ -1698,7 +1812,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "ssl_exporter_configured_certificate_files{job=\"$job\"}",
+                        "expr": "ssl_exporter_configured_certificate_files{job=~\"$job\"}",
                         "legendFormat": "{{instance}} files",
                         "range": true,
                         "instant": false
@@ -1720,7 +1834,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "ssl_exporter_configured_targets{job=\"$job\"}",
+                        "expr": "ssl_exporter_configured_targets{job=~\"$job\"}",
                         "legendFormat": "{{instance}} targets",
                         "range": true,
                         "instant": false
@@ -1815,7 +1929,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum by (instance, source) (ssl_check_success{job=\"$job\"}) / count by (instance, source) (ssl_check_success{job=\"$job\"})",
+                        "expr": "sum by (instance, source) (ssl_check_success{job=~\"$job\"}) / count by (instance, source) (ssl_check_success{job=~\"$job\"})",
                         "legendFormat": "{{instance}} {{source}}",
                         "range": true,
                         "instant": false
@@ -1910,7 +2024,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum by (instance, source) (ssl_certificate_chain_verified{job=\"$job\"}) / count by (instance, source) (ssl_certificate_chain_verified{job=\"$job\"})",
+                        "expr": "sum by (instance, source) (ssl_certificate_chain_verified{job=~\"$job\"}) / count by (instance, source) (ssl_certificate_chain_verified{job=~\"$job\"})",
                         "legendFormat": "{{instance}} {{source}}",
                         "range": true,
                         "instant": false
@@ -2005,7 +2119,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum by (instance, source) (ssl_certificate_temporarily_valid{job=\"$job\",chain_index=\"0\"}) / count by (instance, source) (ssl_certificate_temporarily_valid{job=\"$job\",chain_index=\"0\"})",
+                        "expr": "sum by (instance, source) (ssl_certificate_temporarily_valid{job=~\"$job\",chain_index=\"0\"}) / count by (instance, source) (ssl_certificate_temporarily_valid{job=~\"$job\",chain_index=\"0\"})",
                         "legendFormat": "{{instance}} {{source}}",
                         "range": true,
                         "instant": false
@@ -2100,7 +2214,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "go_goroutines{job=\"$job\"}",
+                        "expr": "go_goroutines{job=~\"$job\"}",
                         "legendFormat": "{{instance}} goroutines",
                         "range": true
                       }
@@ -2217,7 +2331,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "process_open_fds{job=\"$job\"}",
+                        "expr": "process_open_fds{job=~\"$job\"}",
                         "legendFormat": "{{instance}} open_fds",
                         "range": true
                       }
@@ -2334,7 +2448,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "time() - (ssl_exporter_last_successful_collection_timestamp_seconds{job=\"$job\"} > 0)",
+                        "expr": "time() - (ssl_exporter_last_successful_collection_timestamp_seconds{job=~\"$job\"} > 0)",
                         "legendFormat": "{{instance}} age",
                         "range": true,
                         "instant": false
@@ -2452,7 +2566,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "ssl_exporter_last_collection_success{job=\"$job\"}",
+                        "expr": "ssl_exporter_last_collection_success{job=~\"$job\"}",
                         "legendFormat": "{{instance}} success",
                         "range": true,
                         "instant": false
@@ -2494,17 +2608,36 @@
               "fieldConfig": {
                 "defaults": {
                   "unit": "none",
+                  "mappings": [
+                    {
+                      "type": "value",
+                      "options": {
+                        "0": {
+                          "color": "red",
+                          "text": "failed"
+                        },
+                        "1": {
+                          "color": "green",
+                          "text": "ok"
+                        }
+                      }
+                    }
+                  ],
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
                       {
                         "value": 0,
+                        "color": "red"
+                      },
+                      {
+                        "value": 1,
                         "color": "green"
                       }
                     ]
                   },
                   "color": {
-                    "mode": "palette-classic"
+                    "mode": "thresholds"
                   },
                   "custom": {
                     "axisBorderShow": false,
@@ -2541,51 +2674,7 @@
                     }
                   }
                 },
-                "overrides": [
-                  {
-                    "matcher": {
-                      "id": "byRegexp",
-                      "scope": "series",
-                      "options": "success"
-                    },
-                    "properties": [
-                      {
-                        "id": "mappings",
-                        "value": [
-                          {
-                            "options": {
-                              "0": {
-                                "color": "red",
-                                "text": "failed"
-                              },
-                              "1": {
-                                "color": "green",
-                                "text": "ok"
-                              }
-                            },
-                            "type": "value"
-                          }
-                        ]
-                      },
-                      {
-                        "id": "thresholds",
-                        "value": {
-                          "mode": "absolute",
-                          "steps": [
-                            {
-                              "color": "red",
-                              "value": 0
-                            },
-                            {
-                              "color": "green",
-                              "value": 1
-                            }
-                          ]
-                        }
-                      }
-                    ]
-                  }
-                ]
+                "overrides": []
               }
             }
           }
@@ -2596,7 +2685,7 @@
         "spec": {
           "id": 2,
           "title": "Failed Checks",
-          "description": "",
+          "description": "Number of SSL certificate checks that returned an error (connection timeout, certificate read failure, or TLS handshake error)",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -2615,7 +2704,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "sum(1 - ssl_check_success{job=\"$job\"}) or vector(0)",
+                        "expr": "sum(1 - ssl_check_success{job=~\"$job\"}) or vector(0)",
                         "instant": true,
                         "legendFormat": "failed checks",
                         "range": false
@@ -2687,7 +2776,7 @@
         "spec": {
           "id": 3,
           "title": "Expired Certificates",
-          "description": "",
+          "description": "Number of leaf certificates past their NotAfter expiration date",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -2706,7 +2795,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "count(ssl_certificate_expires_in_seconds{job=\"$job\",chain_index=\"0\"} < 0) or vector(0)",
+                        "expr": "count(ssl_certificate_expires_in_seconds{job=~\"$job\",chain_index=\"0\"} < 0) or vector(0)",
                         "instant": true,
                         "legendFormat": "expired",
                         "range": false
@@ -2758,7 +2847,7 @@
                         "color": "orange"
                       },
                       {
-                        "value": 1,
+                        "value": 5,
                         "color": "red"
                       }
                     ]
@@ -2797,7 +2886,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "sum(1 - ssl_certificate_chain_verified{job=\"$job\"}) or vector(0)",
+                        "expr": "sum(1 - ssl_certificate_chain_verified{job=~\"$job\"}) or vector(0)",
                         "instant": true,
                         "legendFormat": "chain failures",
                         "range": false
@@ -2849,7 +2938,7 @@
                         "color": "orange"
                       },
                       {
-                        "value": 1,
+                        "value": 5,
                         "color": "red"
                       }
                     ]
@@ -2887,7 +2976,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "ssl_certificate_expires_in_seconds{job=\"$job\",chain_index=\"0\"} / 86400",
+                        "expr": "ssl_certificate_expires_in_seconds{job=~\"$job\",chain_index=\"0\"} / 86400",
                         "legendFormat": "{{instance}} {{source}} {{target}}",
                         "range": true,
                         "instant": false
@@ -2913,7 +3002,9 @@
                   "multiLane": false
                 },
                 "legend": {
-                  "calcs": [],
+                  "calcs": [
+                    "lastNotNull"
+                  ],
                   "displayMode": "list",
                   "placement": "bottom",
                   "showLegend": true
@@ -3003,7 +3094,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum by (source) (ssl_check_success{job=\"$job\"})",
+                        "expr": "sum by (source) (ssl_check_success{job=~\"$job\"})",
                         "legendFormat": "{{source}} checks ok",
                         "range": true,
                         "instant": false
@@ -3025,7 +3116,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "sum by (source) (ssl_certificate_chain_verified{job=\"$job\"})",
+                        "expr": "sum by (source) (ssl_certificate_chain_verified{job=~\"$job\"})",
                         "legendFormat": "{{source}} chains verified",
                         "range": true,
                         "instant": false
@@ -3141,7 +3232,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "ssl_certificate_expires_in_seconds{job=\"$job\",chain_index=\"0\"} / 86400",
+                        "expr": "ssl_certificate_expires_in_seconds{job=~\"$job\",chain_index=\"0\"} / 86400",
                         "format": "table",
                         "instant": true,
                         "legendFormat": "__auto",
@@ -3178,8 +3269,8 @@
                       },
                       "orderByMode": "manual",
                       "renameByName": {
-                        "Value": "days_until_expiry",
-                        "Value #A": "days_until_expiry",
+                        "Value": "expires_in",
+                        "Value #A": "expires_in",
                         "subject_cn": "subject",
                         "issuer_cn": "issuer"
                       }
@@ -3202,7 +3293,7 @@
                 "sortBy": [
                   {
                     "desc": false,
-                    "displayName": "days_until_expiry"
+                    "displayName": "expires_in"
                   }
                 ]
               },
@@ -3246,7 +3337,7 @@
                     "matcher": {
                       "id": "byName",
                       "scope": "series",
-                      "options": "days_until_expiry"
+                      "options": "expires_in"
                     },
                     "properties": [
                       {
@@ -3307,7 +3398,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "count((ssl_certificate_expires_in_seconds{job=\"$job\",chain_index=\"0\"} < 14 * 24 * 60 * 60) and (ssl_certificate_expires_in_seconds{job=\"$job\",chain_index=\"0\"} >= 0)) or vector(0)",
+                        "expr": "count((ssl_certificate_expires_in_seconds{job=~\"$job\",chain_index=\"0\"} < 14 * 24 * 60 * 60) and (ssl_certificate_expires_in_seconds{job=~\"$job\",chain_index=\"0\"} >= 0)) or vector(0)",
                         "instant": true,
                         "legendFormat": "expiring soon",
                         "range": false
@@ -3379,7 +3470,7 @@
         "spec": {
           "id": 9,
           "title": "Configured Sources",
-          "description": "",
+          "description": "Number of configured certificate files and remote TLS targets",
           "links": [],
           "data": {
             "kind": "QueryGroup",
@@ -3397,13 +3488,35 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "(sum(ssl_exporter_configured_certificate_files{job=\"$job\"}) or vector(0)) + (sum(ssl_exporter_configured_targets{job=\"$job\"}) or vector(0))",
-                        "legendFormat": "sources",
+                        "expr": "sum(ssl_exporter_configured_certificate_files{job=~\"$job\"}) or vector(0)",
+                        "legendFormat": "files",
                         "range": false,
                         "instant": true
                       }
                     },
                     "refId": "A",
+                    "hidden": false
+                  }
+                },
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${DS_PROMETHEUS}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "expr": "sum(ssl_exporter_configured_targets{job=~\"$job\"}) or vector(0)",
+                        "legendFormat": "targets",
+                        "range": false,
+                        "instant": true
+                      }
+                    },
+                    "refId": "B",
                     "hidden": false
                   }
                 }
@@ -3418,7 +3531,7 @@
             "version": "13.0.1",
             "spec": {
               "options": {
-                "colorMode": "value",
+                "colorMode": "background",
                 "graphMode": "none",
                 "justifyMode": "auto",
                 "orientation": "auto",
@@ -3428,7 +3541,7 @@
                     "lastNotNull"
                   ],
                   "fields": "",
-                  "values": false
+                  "values": true
                 },
                 "showPercentChange": false,
                 "textMode": "auto",
@@ -3483,7 +3596,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "min by (instance) (ssl_certificate_expires_in_seconds{job=\"$job\",chain_index=\"0\"})",
+                        "expr": "min by (instance) (ssl_certificate_expires_in_seconds{job=~\"$job\",chain_index=\"0\"})",
                         "legendFormat": "{{instance}} earliest expiry",
                         "range": true,
                         "instant": false
@@ -3578,7 +3691,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "time() - max by (instance) (ssl_certificate_not_before_timestamp_seconds{job=\"$job\",chain_index=\"0\"})",
+                        "expr": "time() - max by (instance) (ssl_certificate_not_before_timestamp_seconds{job=~\"$job\",chain_index=\"0\"})",
                         "legendFormat": "{{instance}} newest not_before age",
                         "range": true,
                         "instant": false
@@ -3673,7 +3786,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "count by (instance, source, target) (ssl_certificate_not_after_timestamp_seconds{job=\"$job\"})",
+                        "expr": "count by (instance, source, target) (ssl_certificate_not_after_timestamp_seconds{job=~\"$job\"})",
                         "legendFormat": "{{instance}} {{source}} {{target}}",
                         "range": true,
                         "instant": false
@@ -3769,7 +3882,7 @@
                       "spec": {
                         "editorMode": "code",
                         "exemplar": false,
-                        "expr": "(count(ssl_certificate_chain_verified{job=\"$job\"}) or vector(0)) / (count(ssl_check_success{job=\"$job\"}) or vector(1))",
+                        "expr": "(count(ssl_certificate_chain_verified{job=~\"$job\"}) or vector(0)) / (count(ssl_check_success{job=~\"$job\"}) or vector(1))",
                         "instant": true,
                         "legendFormat": "coverage",
                         "range": false
@@ -3888,7 +4001,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "(ssl_certificate_not_after_timestamp_seconds{job=\"$job\"} - ssl_certificate_not_before_timestamp_seconds{job=\"$job\"}) / 86400",
+                        "expr": "(ssl_certificate_not_after_timestamp_seconds{job=~\"$job\"} - ssl_certificate_not_before_timestamp_seconds{job=~\"$job\"}) / 86400",
                         "legendFormat": "{{instance}} {{source}} {{target}} chain={{chain_index}}",
                         "range": true,
                         "instant": false
@@ -3983,7 +4096,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "(time() - ssl_certificate_not_before_timestamp_seconds{job=\"$job\"}) / 86400",
+                        "expr": "(time() - ssl_certificate_not_before_timestamp_seconds{job=~\"$job\"}) / 86400",
                         "legendFormat": "{{instance}} {{source}} {{target}} chain={{chain_index}}",
                         "range": true,
                         "instant": false
@@ -4047,6 +4160,198 @@
                     "thresholdsStyle": {
                       "mode": "off"
                     }
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-37": {
+        "kind": "Panel",
+        "spec": {
+          "id": 37,
+          "title": "Days Remaining by Certificate",
+          "description": "Days until leaf certificate expiry per source and target",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${DS_PROMETHEUS}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "exemplar": false,
+                        "expr": "ssl_certificate_expires_in_seconds{job=~\"$job\",chain_index=\"0\"} / 86400",
+                        "instant": true,
+                        "legendFormat": "{{subject_cn}}",
+                        "range": false
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "bargauge",
+            "version": "13.0.1",
+            "spec": {
+              "options": {
+                "displayMode": "gradient",
+                "maxVizHeight": 28,
+                "minVizHeight": 28,
+                "minVizWidth": 8,
+                "namePlacement": "left",
+                "orientation": "horizontal",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showUnfilled": true,
+                "sizing": "manual",
+                "valueMode": "color"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "d",
+                  "displayName": "${__series.name}",
+                  "decimals": 1,
+                  "min": 0,
+                  "max": 30,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "color": "red",
+                        "value": null
+                      },
+                      {
+                        "color": "orange",
+                        "value": 7
+                      },
+                      {
+                        "color": "yellow",
+                        "value": 14
+                      },
+                      {
+                        "color": "green",
+                        "value": 30
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-38": {
+        "kind": "Panel",
+        "spec": {
+          "id": 38,
+          "title": "Current Check Success",
+          "description": "Ratio of configured SSL sources that were collected successfully in the last snapshot",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "prometheus",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "${DS_PROMETHEUS}"
+                      },
+                      "spec": {
+                        "editorMode": "code",
+                        "exemplar": false,
+                        "expr": "sum(ssl_check_success{job=~\"$job\"}) / count(ssl_check_success{job=~\"$job\"})",
+                        "instant": true,
+                        "legendFormat": "checks",
+                        "range": false
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "stat",
+            "version": "13.0.1",
+            "spec": {
+              "options": {
+                "colorMode": "background",
+                "graphMode": "none",
+                "justifyMode": "center",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "showPercentChange": false,
+                "textMode": "auto",
+                "wideLayout": true
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "percentunit",
+                  "decimals": 1,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "red"
+                      },
+                      {
+                        "value": 0.95,
+                        "color": "orange"
+                      },
+                      {
+                        "value": 1,
+                        "color": "green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
                   }
                 },
                 "overrides": []
@@ -4152,7 +4457,7 @@
                       "spec": {
                         "x": 18,
                         "y": 0,
-                        "width": 6,
+                        "width": 3,
                         "height": 4,
                         "element": {
                           "kind": "ElementReference",
@@ -4163,8 +4468,63 @@
                     {
                       "kind": "GridLayoutItem",
                       "spec": {
+                        "x": 21,
+                        "y": 0,
+                        "width": 3,
+                        "height": 4,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-38"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
                         "x": 0,
                         "y": 4,
+                        "width": 24,
+                        "height": 8,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-37"
+                        }
+                      }
+                    },
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 12,
+                        "width": 24,
+                        "height": 8,
+                        "element": {
+                          "kind": "ElementReference",
+                          "name": "panel-36"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "kind": "RowsLayoutRow",
+            "spec": {
+              "title": "Certificate Inventory",
+              "collapse": true,
+              "hideHeader": false,
+              "fillScreen": false,
+              "layout": {
+                "kind": "GridLayout",
+                "spec": {
+                  "items": [
+                    {
+                      "kind": "GridLayoutItem",
+                      "spec": {
+                        "x": 0,
+                        "y": 0,
                         "width": 24,
                         "height": 20,
                         "element": {
@@ -4418,7 +4778,7 @@
               "layout": {
                 "kind": "AutoGridLayout",
                 "spec": {
-                  "maxColumnCount": 4,
+                  "maxColumnCount": 5,
                   "columnWidthMode": "standard",
                   "rowHeightMode": "standard",
                   "items": [
@@ -4631,12 +4991,13 @@
           "refresh": "onDashboardLoad",
           "regex": "",
           "current": {
-            "text": "",
-            "value": ""
+            "text": "All",
+            "value": "$__all"
           },
           "options": [],
-          "multi": false,
-          "includeAll": false,
+          "multi": true,
+          "includeAll": true,
+          "allValue": ".*",
           "sort": "alphabeticalAsc",
           "hide": "dontHide",
           "skipUrlSync": false,

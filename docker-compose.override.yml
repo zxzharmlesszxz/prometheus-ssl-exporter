@@ -1,7 +1,7 @@
 services:
   exporter:
     command:
-      - --web.listen-address=:${COMPOSE_EXPORTER_PORT:-9219}
+      - --web.listen-address=:${COMPOSE_EXPORTER_PORT:-9888}
       - --${FEATURE_NAME}.refresh-interval=30s
-      - --${FEATURE_NAME}.target=address=google.com,port=443
-      - --${FEATURE_NAME}.target=address=yahoo.com,port=443
+      - --${FEATURE_NAME}.target=address=example.com
+      - --${FEATURE_NAME}.target=address=thisisnonexistent.com

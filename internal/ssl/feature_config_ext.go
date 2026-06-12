@@ -18,6 +18,9 @@ type Config struct {
 	MaxConcurrentTargets int
 	fileChecks           []sslcheck.FileCheck
 	targetChecks         []sslcheck.TargetCheck
+
+	timeoutConfigured       bool
+	maxConcurrentConfigured bool
 }
 
 const (
@@ -48,6 +51,7 @@ var featureConfigFlagSpecs = []featurekit.FeatureConfigFlagSpec[Config]{
 		Default: DefaultTimeout.String(),
 		Bind: func(flag *kingpin.FlagClause, config *Config) {
 			flag.DurationVar(&config.Timeout)
+			flag.IsSetByUser(&config.timeoutConfigured)
 		},
 	},
 	{
@@ -56,6 +60,7 @@ var featureConfigFlagSpecs = []featurekit.FeatureConfigFlagSpec[Config]{
 		Default: fmt.Sprint(DefaultMaxConcurrentTargets),
 		Bind: func(flag *kingpin.FlagClause, config *Config) {
 			flag.IntVar(&config.MaxConcurrentTargets)
+			flag.IsSetByUser(&config.maxConcurrentConfigured)
 		},
 	},
 }
@@ -108,14 +113,14 @@ func ResolveFeatureConfig(featureName string, config Config) (Config, string, bo
 	}
 
 	if loaded {
-		if fileConfig.Timeout != "" && (config.Timeout == DefaultTimeout || config.Timeout <= 0) {
+		if fileConfig.Timeout != "" && !config.timeoutConfigured {
 			t, err := time.ParseDuration(fileConfig.Timeout)
 			if err != nil {
 				return config, cfgFile, true, fmt.Errorf("parse timeout from %q: %w", cfgFile, err)
 			}
 			config.Timeout = t
 		}
-		if fileConfig.MaxConcurrentTargets > 0 && (config.MaxConcurrentTargets == DefaultMaxConcurrentTargets || config.MaxConcurrentTargets <= 0) {
+		if fileConfig.MaxConcurrentTargets > 0 && !config.maxConcurrentConfigured {
 			config.MaxConcurrentTargets = fileConfig.MaxConcurrentTargets
 		}
 
