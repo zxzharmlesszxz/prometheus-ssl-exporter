@@ -97,6 +97,31 @@ Make, Compose, and smoke defaults use `FEATURE_CONFIG_FILE`, which defaults to `
 Runtime config can always be overridden with another `--ssl.config-file=...` value.
 Certificate refresh runs through the framework snapshot collector in a background worker; scrapes return the last collected snapshot.
 
+## Configuration Example
+
+The YAML config file accepts these SSL-specific top-level keys:
+
+```yaml
+targets:
+  - address: google.com
+    port: 443
+    server_name: google.com
+
+  - address: example.com:443
+
+  - file: /etc/ssl/certs/example.pem
+
+  - file: /etc/ssl/certs/internal.pem
+    ca: /etc/ssl/certs/internal-ca.pem
+
+timeout: 5s
+max_concurrent_targets: 8
+```
+
+Remote target items support `address`, optional `port`, optional `server_name`
+or `sni`, and optional `ca`. File target items support `file` and optional
+`ca`.
+
 ## Metrics
 
 `ssl_check_success` means that the exporter successfully collected data from the configured source.
@@ -106,7 +131,7 @@ Use `ssl_certificate_chain_verified` / `ssl_target_chain_verified` for trust and
 
 Example output:
 
-```code
+```text
 ssl_check_success{source="target",target="google.com:443"} 1
 ssl_certificate_chain_verified{source="target",target="google.com:443"} 1
 ssl_target_chain_verified{target="google.com:443"} 1
@@ -114,20 +139,28 @@ ssl_certificate_not_before_timestamp_seconds{source="target",target="google.com:
 ssl_certificate_not_after_timestamp_seconds{source="target",target="google.com:443",chain_index="0",subject_cn="*.google.com",issuer_cn="WR2",serial_number="..."} 1.77912e+09
 ssl_certificate_expires_in_seconds{source="target",target="google.com:443",chain_index="0",subject_cn="*.google.com",issuer_cn="WR2",serial_number="..."} 4.2e+06
 ssl_certificate_temporarily_valid{source="target",target="google.com:443",chain_index="0",subject_cn="*.google.com",issuer_cn="WR2",serial_number="..."} 1
+ssl_target_up{source="target"} 1
+ssl_target_valid{source="target"} 1
+ssl_target_scrape_duration_seconds{source="target"} 0.381
+ssl_target_read_errors_total{source="target"} 0
 ssl_exporter_last_collection_success 1
 ssl_exporter_last_collection_timestamp_seconds 1.77912e+09
 ssl_exporter_last_successful_collection_timestamp_seconds 1.77912e+09
 ```
 
 For remote endpoints, `chain_index="0"` is the leaf certificate.
-
-The full metric contract lives in [`METRICS.md`](METRICS.md).
+SSL metrics use the `ssl` feature namespace. Framework-owned exporter
+collection metrics use the `ssl_exporter` metric namespace. The full metric
+contract lives in [`METRICS.md`](METRICS.md).
 
 ## Docker Compose
 
 The repository includes [`docker-compose.yml`](docker-compose.yml) for local testing.
 The Prometheus scrape config is embedded in Compose, while alerting rules live
 under [`examples/prometheus`](examples/prometheus).
+The bundled rules cover exporter availability, framework collection
+failure/staleness, certificate validity/expiry/chain failures, and file/target
+source health.
 It starts:
 
 - `exporter`
@@ -158,6 +191,10 @@ Docker Compose provisions Grafana with:
 - default login `admin` / `admin`
 
 Open `http://localhost:3000` after `make compose`.
+The main dashboard uses the Grafana v2 dashboard resource model and includes
+certificate/source status stats, certificate inventory, source-health graphs,
+historical changes, exporter collection health, Go runtime panels, and
+Prometheus scrape health.
 
 For a direct Docker build, run:
 
@@ -189,8 +226,8 @@ Go files named `scaffold_*.go` are generated contract glue and should stay
 identical to the scaffold output. Add exporter-specific behavior in adjacent
 non-scaffold files such as `feature_config_ext.go`, `feature_metrics_ext.go`,
 `feature_snapshotter_ext.go`, `feature_smoke_ext.go`, `metrics.go`, and the
-SSL check package. The feature package `Snapshot` alias lives in
-`scaffold_snapshot_types.go`; the actual snapshot structure lives in
+SSL check package. The feature package `Snapshot` aggregate lives in
+`snapshot_types.go`; the SSL check engine snapshot lives in
 `internal/sslcheck`.
 
 Build local release artifacts:

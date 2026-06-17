@@ -12,7 +12,13 @@ const (
 	metricCertificateTemporarilyValid = "certificate_temporarily_valid"
 	metricConfiguredCertificateFiles  = "configured_certificate_files"
 	metricConfiguredTargets           = "configured_targets"
+
+	metricFileSource   = "file"
+	metricTargetSource = "target"
 )
+
+var fileMetricIDs = featurekit.FileScrapeMetricIDsFor(metricFileSource)
+var targetMetricIDs = featurekit.FileScrapeMetricIDsFor(metricTargetSource)
 
 var certificateLabels = []string{
 	"source",
@@ -23,7 +29,16 @@ var certificateLabels = []string{
 	"serial_number",
 }
 
-var featureMetricSpecs = []featurekit.FeatureMetricSpec{
+var sourceHealthLabels = []string{
+	"source",
+}
+
+var sourceHealthMetricSpecs = append(
+	featurekit.FileScrapeMetricSpecs(metricFileSource, sourceHealthLabels),
+	featurekit.FileScrapeMetricSpecs(metricTargetSource, sourceHealthLabels)...,
+)
+
+var sslMetricSpecs = []featurekit.FeatureMetricSpec{
 	{
 		ID:     metricCheckSuccess,
 		Scope:  featurekit.MetricScopeFeature,
@@ -86,3 +101,5 @@ var featureMetricSpecs = []featurekit.FeatureMetricSpec{
 		Help:  "Number of configured remote TLS targets",
 	},
 }
+
+var featureMetricSpecs = append(sslMetricSpecs, sourceHealthMetricSpecs...)

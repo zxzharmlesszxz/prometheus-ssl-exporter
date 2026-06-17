@@ -83,3 +83,61 @@ groups:
         annotations:
           summary: SSL certificate expired
           description: SSL certificate for {{ $labels.target }} is expired.
+
+      - alert: SslFileSourceDown
+        expr: ssl_file_up{job=~"(prometheus-)?ssl[_-]exporter"} == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: SSL file source is unavailable
+          description: prometheus-ssl-exporter cannot read one or more configured certificate files on {{ $labels.instance }}.
+
+      - alert: SslFileSourceInvalid
+        expr: ssl_file_up{job=~"(prometheus-)?ssl[_-]exporter"} == 1 and ssl_file_valid{job=~"(prometheus-)?ssl[_-]exporter"} == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: SSL file source is readable but invalid
+          description: prometheus-ssl-exporter can read configured certificate files on {{ $labels.instance }}, but at least one file did not produce valid certificate data.
+
+      - alert: SslTargetSourceDown
+        expr: ssl_target_up{job=~"(prometheus-)?ssl[_-]exporter"} == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: SSL target source is unavailable
+          description: prometheus-ssl-exporter cannot collect one or more configured TLS targets on {{ $labels.instance }}.
+
+      - alert: SslTargetSourceInvalid
+        expr: ssl_target_up{job=~"(prometheus-)?ssl[_-]exporter"} == 1 and ssl_target_valid{job=~"(prometheus-)?ssl[_-]exporter"} == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: SSL target source is readable but invalid
+          description: prometheus-ssl-exporter collected configured TLS targets on {{ $labels.instance }}, but at least one target did not produce valid certificate data.
+
+      - alert: SslSourceReadErrors
+        expr: >-
+          increase(ssl_file_read_errors_total{job=~"(prometheus-)?ssl[_-]exporter"}[30m]) > 0
+          or increase(ssl_target_read_errors_total{job=~"(prometheus-)?ssl[_-]exporter"}[30m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: SSL source read errors observed
+          description: prometheus-ssl-exporter observed one or more file read or target collection errors in the last 30 minutes.
+
+      - alert: SslSourceParseErrors
+        expr: >-
+          increase(ssl_file_parse_errors_total{job=~"(prometheus-)?ssl[_-]exporter"}[30m]) > 0
+          or increase(ssl_target_parse_errors_total{job=~"(prometheus-)?ssl[_-]exporter"}[30m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: SSL source parse errors observed
+          description: prometheus-ssl-exporter observed one or more certificate parse errors in the last 30 minutes.

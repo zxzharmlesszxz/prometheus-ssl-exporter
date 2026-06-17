@@ -116,6 +116,9 @@ func testCollectorExportsCertificateAndCollectionMetrics(t *testing.T, suite *Fe
 	exportertest.AssertMetricValue(t, families, testLastTimestamp, nil, float64(now.Unix()))
 	exportertest.AssertMetricValue(t, families, testLastSuccessfulTS, nil, float64(now.Unix()))
 	exportertest.AssertMetricValue(t, families, suite.MetricName("", testMetricNamespace, metricConfiguredCertificateFiles), nil, 1)
+	exportertest.AssertMetricValue(t, families, suite.MetricName(testFeatureName, "", fileMetricIDs.Up), map[string]string{"source": "file"}, 1)
+	exportertest.AssertMetricValue(t, families, suite.MetricName(testFeatureName, "", fileMetricIDs.Valid), map[string]string{"source": "file"}, 1)
+	exportertest.AssertMetricValue(t, families, suite.MetricName(testFeatureName, "", fileMetricIDs.ReadErrorsTotal), map[string]string{"source": "file"}, 0)
 }
 
 func testCollectorUsesProvidedSnapshotter(t *testing.T, suite *FeatureTestSuite) {
@@ -359,6 +362,12 @@ func writeTestCertificate(t *testing.T, commonName string, notBefore time.Time, 
 func testChecker(files []sslcheck.FileCheck, targets []sslcheck.TargetCheck) framework.Snapshotter[Snapshot] {
 	c := sslcheck.NewChecker(files, targets, DefaultTimeout, DefaultMaxConcurrentTargets)
 	return featurekit.SnapshotEngineFunc[Snapshot](func(ctx context.Context, now time.Time) Snapshot {
-		return Snapshot{ssl: c.Check(ctx, now)}
+		sslSnapshot := c.Check(ctx, now)
+		fileErrors, targetErrors := countSourceErrors(sslSnapshot)
+		return Snapshot{
+			ssl:          sslSnapshot,
+			FileResult:   sourceHealthResult(sslSnapshot, "file", sslSnapshot.ConfiguredCertificateFiles, fileErrors, now, 0.25),
+			TargetResult: sourceHealthResult(sslSnapshot, "target", sslSnapshot.ConfiguredTargets, targetErrors, now, 0.25),
+		}
 	})
 }

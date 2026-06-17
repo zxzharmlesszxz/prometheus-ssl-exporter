@@ -1,3 +1,8 @@
+# Exporter config keys:
+# - targets: []
+# - timeout: 5s
+# - max_concurrent_targets: 8
+#
 # Remote target item keys:
 # - address: required remote host name or IP address
 # - port: 443
@@ -7,4 +12,18 @@
 # File target item keys:
 # - file: required certificate file path
 # - ca: optional CA bundle path
+#
+# Examples:
+# targets:
+#   - address: google.com
+#     port: 443
+#     server_name: google.com
+#   - address: example.com:443
+#   - file: /etc/ssl/certs/example.pem
+#   - file: /etc/ssl/certs/internal.pem
+#     ca: /etc/ssl/certs/internal-ca.pem
+# timeout: 5s
+# max_concurrent_targets: 8
 targets: []
+timeout: 5s
+max_concurrent_targets: 8

@@ -24,7 +24,7 @@ type Config struct {
 }
 
 const (
-	DefaultRefreshInterval      = 5 * time.Minute
+	DefaultRefreshInterval      = time.Hour
 	DefaultTimeout              = sslcheck.DefaultTimeout
 	DefaultMaxConcurrentTargets = sslcheck.DefaultMaxConcurrentTargets
 )

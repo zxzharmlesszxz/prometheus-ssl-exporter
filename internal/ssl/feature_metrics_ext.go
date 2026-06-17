@@ -20,6 +20,8 @@ func NewFeatureMetricHandlers() featurekit.FeatureMetricHandlers[Snapshot] {
 }
 
 func CollectFeatureMetrics(ctx featurekit.FeatureMetricsContext[Snapshot], ch chan<- prometheus.Metric, snapshot Snapshot, now time.Time) {
+	collectSourceHealthMetrics(ctx, ch, snapshot)
+
 	for _, status := range snapshot.ssl.Checks {
 		ch <- prometheus.MustNewConstMetric(
 			ctx.Descriptors.Get(metricCheckSuccess),
@@ -87,6 +89,41 @@ func CollectFeatureMetrics(ctx featurekit.FeatureMetricsContext[Snapshot], ch ch
 		prometheus.GaugeValue,
 		float64(snapshot.ssl.ConfiguredTargets),
 	)
+}
+
+func collectSourceHealthMetrics(ctx featurekit.FeatureMetricsContext[Snapshot], ch chan<- prometheus.Metric, snapshot Snapshot) {
+	collectSourceHealthResult(ctx, ch, fileMetricIDs, snapshot.FileResult, sourceValid(snapshot.ssl, "file", snapshot.ssl.ConfiguredCertificateFiles))
+	collectSourceHealthResult(ctx, ch, targetMetricIDs, snapshot.TargetResult, sourceValid(snapshot.ssl, "target", snapshot.ssl.ConfiguredTargets))
+}
+
+func collectSourceHealthResult(ctx featurekit.FeatureMetricsContext[Snapshot], ch chan<- prometheus.Metric, ids featurekit.FileScrapeMetricIDs, result framework.FileScrapeResult, valid bool) {
+	if result.Path == "" {
+		return
+	}
+	labelValues := []string{result.Path}
+	ch <- prometheus.MustNewConstMetric(ctx.Descriptors.Get(ids.MTimeSeconds), prometheus.GaugeValue, result.MTimeSeconds, labelValues...)
+	ch <- prometheus.MustNewConstMetric(ctx.Descriptors.Get(ids.Up), prometheus.GaugeValue, framework.BoolFloat(result.Up), labelValues...)
+	ch <- prometheus.MustNewConstMetric(ctx.Descriptors.Get(ids.Valid), prometheus.GaugeValue, framework.BoolFloat(valid), labelValues...)
+	ch <- prometheus.MustNewConstMetric(ctx.Descriptors.Get(ids.ReadErrorsTotal), prometheus.CounterValue, float64(result.ReadErrorsTotal), labelValues...)
+	ch <- prometheus.MustNewConstMetric(ctx.Descriptors.Get(ids.ParseErrorsTotal), prometheus.CounterValue, float64(result.ParseErrorsTotal), labelValues...)
+	ch <- prometheus.MustNewConstMetric(ctx.Descriptors.Get(ids.ScrapeDurationSeconds), prometheus.GaugeValue, result.ScrapeDurationSeconds, labelValues...)
+}
+
+func sourceValid(snapshot sslcheck.Snapshot, source string, configured int) bool {
+	if configured == 0 {
+		return false
+	}
+	for _, status := range snapshot.Checks {
+		if status.Source == source && !status.Success {
+			return false
+		}
+	}
+	for _, chain := range snapshot.ChainResults {
+		if chain.Source == source && !chain.ChainVerified {
+			return false
+		}
+	}
+	return true
 }
 
 func LogFeatureSnapshotError(ctx featurekit.FeatureMetricsContext[Snapshot], logger *slog.Logger, snapshot Snapshot) {

@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/alecthomas/kingpin/v2 v2.4.0
 	github.com/prometheus/client_golang v1.23.2
-	github.com/zxzharmlesszxz/prometheus-exporter-framework v0.2.12
+	github.com/zxzharmlesszxz/prometheus-exporter-framework v0.2.13
 )
 
 require go.yaml.in/yaml/v2 v2.4.4
