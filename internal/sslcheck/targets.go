@@ -49,12 +49,6 @@ func parseTarget(raw string) (parsedTarget, error) {
 }
 
 func parseTargetFromValues(raw string, values map[string]string) (parsedTarget, error) {
-	for key := range values {
-		if !isSupportedTargetKey(key) {
-			return parsedTarget{}, fmt.Errorf("ssl target %q uses unsupported key %q", raw, key)
-		}
-	}
-
 	_, hasAddress := values["address"]
 	_, hasFile := values["file"]
 	if hasAddress == hasFile {
@@ -124,7 +118,7 @@ func parseTargetValues(raw string) (map[string]string, error) {
 	}
 
 	result := make(map[string]string)
-	for _, segment := range strings.Split(value, ",") {
+	for segment := range strings.SplitSeq(value, ",") {
 		segment = strings.TrimSpace(segment)
 		if segment == "" {
 			return nil, fmt.Errorf("ssl target %q contains an empty segment", raw)

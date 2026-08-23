@@ -54,6 +54,9 @@ func configTargetValues(raw string, target map[string]any) (map[string]string, e
 	values := make(map[string]string, len(target))
 	for key, value := range target {
 		key = normalizeConfigKey(key)
+		if !isSupportedTargetKey(key) {
+			return nil, fmt.Errorf("ssl target %q uses unsupported key %q", raw, key)
+		}
 		stringValue, err := configTargetString(key, value)
 		if err != nil {
 			return nil, fmt.Errorf("ssl target %q uses invalid %s: %w", raw, key, err)
@@ -82,7 +85,7 @@ func configTargetString(key string, value any) (string, error) {
 		}
 		return typed, nil
 	default:
-		return "", nil
+		return "", fmt.Errorf("unsupported key %q", key)
 	}
 }
 

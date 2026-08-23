@@ -46,5 +46,13 @@ type TargetResult struct {
 type CheckError struct {
 	Source string
 	Target string
+	Kind   CheckErrorKind
 	Err    error
 }
+
+type CheckErrorKind string
+
+const (
+	CheckErrorRead  CheckErrorKind = "read"
+	CheckErrorParse CheckErrorKind = "parse"
+)

@@ -82,7 +82,6 @@ func TestConfigPortString(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -98,6 +97,14 @@ func TestConfigPortString(t *testing.T) {
 
 	if _, err := configPortString(true); err == nil {
 		t.Fatal("configPortString(bool) error = nil, want error")
+	}
+}
+
+func TestConfigTargetStringRejectsUnsupportedKey(t *testing.T) {
+	t.Parallel()
+
+	if _, err := configTargetString("unsupported", "value"); err == nil {
+		t.Fatal("configTargetString() error = nil, want error")
 	}
 }
 
@@ -161,6 +168,16 @@ targets:
   - address: example.com
     port: 443.5
 `,
+		"zero port": `
+targets:
+  - address: example.com
+    port: 0
+`,
+		"out of range port": `
+targets:
+  - address: example.com
+    port: 65536
+`,
 		"null ca": `
 targets:
   - address: example.com
@@ -169,7 +186,6 @@ targets:
 	}
 
 	for name, content := range tests {
-		name, content := name, content
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 

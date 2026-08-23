@@ -6,9 +6,11 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
 	"math/big"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -31,7 +33,6 @@ func TestReadCertificateFileReadsPEMAndDER(t *testing.T) {
 	}
 
 	for _, path := range []string{pemPath, derPath} {
-		path := path
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			t.Parallel()
 
@@ -46,6 +47,55 @@ func TestReadCertificateFileReadsPEMAndDER(t *testing.T) {
 				t.Fatalf("Subject.CommonName = %q, want %q", certs[0].Subject.CommonName, "file.example")
 			}
 		})
+	}
+}
+
+func TestReadCertificateFileHandlesNonCertificatePEMBlocks(t *testing.T) {
+	t.Parallel()
+
+	dir := t.TempDir()
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("GenerateKey() error = %v", err)
+	}
+	keyBlock := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(key)}
+
+	nonCertPath := filepath.Join(dir, "key.pem")
+	if err := os.WriteFile(nonCertPath, pem.EncodeToMemory(keyBlock), 0o600); err != nil {
+		t.Fatalf("WriteFile(%q) error = %v", nonCertPath, err)
+	}
+	_, err = ReadCertificateFile(nonCertPath)
+	if err == nil {
+		t.Fatal("ReadCertificateFile() error = nil, want error")
+	}
+	certFileErr, ok := errors.AsType[*CertificateFileError](err)
+	if !ok {
+		t.Fatalf("ReadCertificateFile() error type = %T, want *CertificateFileError", err)
+	}
+	if certFileErr.Kind != CheckErrorParse {
+		t.Fatalf("CertificateFileError.Kind = %v, want %v", certFileErr.Kind, CheckErrorParse)
+	}
+	if !strings.Contains(err.Error(), "no CERTIFICATE blocks found") {
+		t.Fatalf("ReadCertificateFile() error = %q, want no CERTIFICATE blocks message", err)
+	}
+
+	der := testCertificateDER(t, "mixed.example", time.Unix(1_700_000_000, 0), time.Unix(1_700_086_400, 0))
+	certBlock := &pem.Block{Type: "CERTIFICATE", Bytes: der}
+	mixedPath := filepath.Join(dir, "mixed.pem")
+	mixed := append(pem.EncodeToMemory(keyBlock), pem.EncodeToMemory(certBlock)...)
+	if err := os.WriteFile(mixedPath, mixed, 0o600); err != nil {
+		t.Fatalf("WriteFile(%q) error = %v", mixedPath, err)
+	}
+
+	certs, err := ReadCertificateFile(mixedPath)
+	if err != nil {
+		t.Fatalf("ReadCertificateFile() error = %v", err)
+	}
+	if len(certs) != 1 {
+		t.Fatalf("len(certs) = %d, want 1", len(certs))
+	}
+	if certs[0].Subject.CommonName != "mixed.example" {
+		t.Fatalf("Subject.CommonName = %q, want mixed.example", certs[0].Subject.CommonName)
 	}
 }
 

@@ -10,6 +10,8 @@ import (
 	"io"
 	"log/slog"
 	"math/big"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -76,6 +78,9 @@ func NewFeatureTestSpec() FeatureTestSpec {
 
 func RegisterFeatureTests(suite *FeatureTestSuite) {
 	suite.Register("collector_exports_certificate_and_collection_metrics", func(t *testing.T) { testCollectorExportsCertificateAndCollectionMetrics(t, suite) })
+	suite.Register("collector_classifies_file_parse_errors", func(t *testing.T) { testCollectorClassifiesFileParseErrors(t, suite) })
+	suite.Register("collector_classifies_target_ca_parse_errors", func(t *testing.T) { testCollectorClassifiesTargetCAParseErrors(t, suite) })
+	suite.Register("snapshot_engine_accumulates_source_error_counters", func(t *testing.T) { testSnapshotEngineAccumulatesSourceErrorCounters(t) })
 	suite.Register("collector_uses_provided_snapshotter", func(t *testing.T) { testCollectorUsesProvidedSnapshotter(t, suite) })
 	suite.Register("collector_caches_snapshot_until_refresh_interval", func(t *testing.T) { testCollectorCachesSnapshotUntilRefreshInterval(t, suite) })
 	suite.Register("collector_last_successful_collection_is_zero_before_success", func(t *testing.T) { testCollectorLastSuccessfulCollectionIsZeroBeforeSuccess(t, suite) })
@@ -86,6 +91,18 @@ func RegisterFeatureTests(suite *FeatureTestSuite) {
 	suite.Register("exporter_rejects_invalid_targets", func(t *testing.T) { testExporterRejectsInvalidTargets(t, suite) })
 	suite.Register("exporter_runtime_config_normalizes_values", func(t *testing.T) { testExporterRuntimeConfigNormalizesValues(t, suite) })
 	suite.Register("smoke_spec_includes_ssl_args", func(t *testing.T) { testSmokeSpecIncludesSSLArgs(t, suite) })
+}
+
+func TestSourceHealthyConsidersSourceErrors(t *testing.T) {
+	t.Parallel()
+
+	snapshot := sslcheck.Snapshot{
+		Errors: []sslcheck.CheckError{{Source: "file", Target: "file checks", Kind: sslcheck.CheckErrorRead, Err: context.Canceled}},
+	}
+
+	if sourceHealthy(snapshot, "file", 1, false) {
+		t.Fatal("sourceHealthy() = true, want false")
+	}
 }
 
 func testCollectorExportsCertificateAndCollectionMetrics(t *testing.T, suite *FeatureTestSuite) {
@@ -119,6 +136,78 @@ func testCollectorExportsCertificateAndCollectionMetrics(t *testing.T, suite *Fe
 	exportertest.AssertMetricValue(t, families, suite.MetricName(testFeatureName, "", fileMetricIDs.Up), map[string]string{"source": "file"}, 1)
 	exportertest.AssertMetricValue(t, families, suite.MetricName(testFeatureName, "", fileMetricIDs.Valid), map[string]string{"source": "file"}, 1)
 	exportertest.AssertMetricValue(t, families, suite.MetricName(testFeatureName, "", fileMetricIDs.ReadErrorsTotal), map[string]string{"source": "file"}, 0)
+	exportertest.AssertMetricValue(t, families, suite.MetricName(testFeatureName, "", fileMetricIDs.ParseErrorsTotal), map[string]string{"source": "file"}, 0)
+}
+
+func testCollectorClassifiesFileParseErrors(t *testing.T, suite *FeatureTestSuite) {
+	path := filepath.Join(t.TempDir(), "invalid.pem")
+	if err := os.WriteFile(path, []byte("not a certificate"), 0o644); err != nil {
+		t.Fatalf("WriteFile(%q) error = %v", path, err)
+	}
+
+	collector := suite.NewCollector(testFeatureName, testMetricNamespace, testChecker(
+		[]sslcheck.FileCheck{{Path: path}},
+		nil,
+	), testRefreshInterval)
+
+	families := exportertest.RegisterAndGather(t, collector)
+	exportertest.AssertMetricValue(t, families, suite.MetricName(testFeatureName, "", fileMetricIDs.Up), map[string]string{"source": "file"}, 0)
+	exportertest.AssertMetricValue(t, families, suite.MetricName(testFeatureName, "", fileMetricIDs.Valid), map[string]string{"source": "file"}, 0)
+	exportertest.AssertMetricValue(t, families, suite.MetricName(testFeatureName, "", fileMetricIDs.ReadErrorsTotal), map[string]string{"source": "file"}, 0)
+	exportertest.AssertMetricValue(t, families, suite.MetricName(testFeatureName, "", fileMetricIDs.ParseErrorsTotal), map[string]string{"source": "file"}, 1)
+}
+
+func testCollectorClassifiesTargetCAParseErrors(t *testing.T, suite *FeatureTestSuite) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	t.Cleanup(server.Close)
+
+	endpoint, err := sslcheck.ParseEndpoint(server.URL)
+	if err != nil {
+		t.Fatalf("ParseEndpoint(%q) error = %v", server.URL, err)
+	}
+	caPath := filepath.Join(t.TempDir(), "invalid-ca.pem")
+	if err := os.WriteFile(caPath, []byte("not a certificate"), 0o644); err != nil {
+		t.Fatalf("WriteFile(%q) error = %v", caPath, err)
+	}
+
+	collector := suite.NewCollector(testFeatureName, testMetricNamespace, testChecker(
+		nil,
+		[]sslcheck.TargetCheck{{Endpoint: endpoint, CAFile: caPath}},
+	), testRefreshInterval)
+
+	families := exportertest.RegisterAndGather(t, collector)
+	exportertest.AssertMetricValue(t, families, suite.MetricName(testFeatureName, "", targetMetricIDs.Up), map[string]string{"source": "target"}, 0)
+	exportertest.AssertMetricValue(t, families, suite.MetricName(testFeatureName, "", targetMetricIDs.Valid), map[string]string{"source": "target"}, 0)
+	exportertest.AssertMetricValue(t, families, suite.MetricName(testFeatureName, "", targetMetricIDs.ReadErrorsTotal), map[string]string{"source": "target"}, 0)
+	exportertest.AssertMetricValue(t, families, suite.MetricName(testFeatureName, "", targetMetricIDs.ParseErrorsTotal), map[string]string{"source": "target"}, 1)
+}
+
+func testSnapshotEngineAccumulatesSourceErrorCounters(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "invalid.pem")
+	if err := os.WriteFile(path, []byte("not a certificate"), 0o644); err != nil {
+		t.Fatalf("WriteFile(%q) error = %v", path, err)
+	}
+
+	engine, err := newSnapshotEngine(Config{
+		fileChecks:           []sslcheck.FileCheck{{Path: path}},
+		Timeout:              DefaultTimeout,
+		MaxConcurrentTargets: DefaultMaxConcurrentTargets,
+	})
+	if err != nil {
+		t.Fatalf("newSnapshotEngine() error = %v", err)
+	}
+
+	first := engine.Snapshot(context.Background(), time.Unix(1_700_000_000, 0))
+	if first.FileResult.ParseErrorsTotal != 1 {
+		t.Fatalf("first FileResult.ParseErrorsTotal = %d, want 1", first.FileResult.ParseErrorsTotal)
+	}
+
+	second := engine.Snapshot(context.Background(), time.Unix(1_700_000_001, 0))
+	if second.FileResult.ParseErrorsTotal != 2 {
+		t.Fatalf("second FileResult.ParseErrorsTotal = %d, want 2", second.FileResult.ParseErrorsTotal)
+	}
 }
 
 func testCollectorUsesProvidedSnapshotter(t *testing.T, suite *FeatureTestSuite) {
@@ -363,11 +452,11 @@ func testChecker(files []sslcheck.FileCheck, targets []sslcheck.TargetCheck) fra
 	c := sslcheck.NewChecker(files, targets, DefaultTimeout, DefaultMaxConcurrentTargets)
 	return featurekit.SnapshotEngineFunc[Snapshot](func(ctx context.Context, now time.Time) Snapshot {
 		sslSnapshot := c.Check(ctx, now)
-		fileErrors, targetErrors := countSourceErrors(sslSnapshot)
+		errorCounts := countSourceErrors(sslSnapshot)
 		return Snapshot{
 			ssl:          sslSnapshot,
-			FileResult:   sourceHealthResult(sslSnapshot, "file", sslSnapshot.ConfiguredCertificateFiles, fileErrors, now, 0.25),
-			TargetResult: sourceHealthResult(sslSnapshot, "target", sslSnapshot.ConfiguredTargets, targetErrors, now, 0.25),
+			FileResult:   sourceHealthResult(sslSnapshot, "file", sslSnapshot.ConfiguredCertificateFiles, errorCounts.fileRead, errorCounts.fileParse, now, 0.25),
+			TargetResult: sourceHealthResult(sslSnapshot, "target", sslSnapshot.ConfiguredTargets, errorCounts.targetRead, errorCounts.targetParse, now, 0.25),
 		}
 	})
 }

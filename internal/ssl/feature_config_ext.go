@@ -99,13 +99,6 @@ func normalizePositiveInt(value int, fallback int) int {
 }
 
 func ResolveFeatureConfig(featureName string, config Config) (Config, string, bool, error) {
-	if config.Timeout < 0 {
-		config.Timeout = 0
-	}
-	if config.MaxConcurrentTargets < 0 {
-		config.MaxConcurrentTargets = 0
-	}
-
 	var fileConfig featureConfigFile
 	cfgFile, loaded, err := featurekit.LoadFeatureConfigFile(featureName, config.ConfigFile, &fileConfig)
 	if err != nil {

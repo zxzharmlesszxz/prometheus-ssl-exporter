@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"math/big"
 	"net"
@@ -57,7 +58,16 @@ func (c Checker) Check(ctx context.Context, now time.Time) Snapshot {
 		Success:     true,
 	}
 
+filesLoop:
 	for _, file := range c.Files {
+		select {
+		case <-ctx.Done():
+			snapshot.Success = false
+			snapshot.Errors = append(snapshot.Errors, newCheckError("file", "file checks", ctx.Err()))
+			break filesLoop
+		default:
+		}
+
 		path := strings.TrimSpace(file.Path)
 		if path == "" {
 			continue
@@ -74,7 +84,7 @@ func (c Checker) Check(ctx context.Context, now time.Time) Snapshot {
 			roots, err := readCertificatePool(caFile)
 			if err != nil {
 				checkSucceeded = false
-				snapshot.Errors = append(snapshot.Errors, CheckError{Source: "file", Target: path, Err: err})
+				snapshot.Errors = append(snapshot.Errors, newCheckError("file", path, err))
 			} else {
 				snapshot.ChainResults = append(snapshot.ChainResults, ChainResult{
 					Source:        "file",
@@ -92,6 +102,9 @@ func (c Checker) Check(ctx context.Context, now time.Time) Snapshot {
 	}
 
 	for _, result := range c.checkTargets(ctx, now) {
+		if result.Check.Source == "" && result.Check.Target == "" {
+			continue
+		}
 		if !result.Check.Success {
 			snapshot.Success = false
 		}
@@ -132,13 +145,11 @@ func (c Checker) checkTargets(ctx context.Context, now time.Time) []targetCheckR
 	jobs := make(chan targetCheckJob)
 	var wg sync.WaitGroup
 	for i := 0; i < maxConcurrent; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for job := range jobs {
 				results[job.Index] = c.checkTarget(ctx, job.Target, now)
 			}
-		}()
+		})
 	}
 
 sendLoop:
@@ -167,11 +178,11 @@ func (c Checker) checkTarget(ctx context.Context, target TargetCheck, now time.T
 	}
 
 	checkSucceeded := true
-	var errors []CheckError
+	var checkErrors []CheckError
 	roots, err := targetRoots(target.CAFile)
 	if err != nil {
 		checkSucceeded = false
-		errors = append(errors, CheckError{Source: "target", Target: target.Endpoint.Raw, Err: err})
+		checkErrors = append(checkErrors, newCheckError("target", target.Endpoint.Raw, err))
 	}
 
 	verified := false
@@ -184,21 +195,37 @@ func (c Checker) checkTarget(ctx context.Context, target TargetCheck, now time.T
 		ChainResults:  []ChainResult{{Source: "target", Target: target.Endpoint.Raw, ChainVerified: verified}},
 		TargetResults: []TargetResult{{Target: target.Endpoint.Raw, ChainVerified: verified}},
 		Certificates:  certificatesFromX509("target", target.Endpoint.Raw, certs, now),
-		Errors:        errors,
+		Errors:        checkErrors,
 	}
 }
 
 func targetFailure(target string, err error) targetCheckResult {
 	return targetCheckResult{
 		Check:  CheckStatus{Source: "target", Target: target, Success: false},
-		Errors: []CheckError{{Source: "target", Target: target, Err: err}},
+		Errors: []CheckError{newCheckError("target", target, err)},
 	}
 }
 
 func (s *Snapshot) addFailure(source string, target string, err error) {
 	s.Success = false
 	s.Checks = append(s.Checks, CheckStatus{Source: source, Target: target, Success: false})
-	s.Errors = append(s.Errors, CheckError{Source: source, Target: target, Err: err})
+	s.Errors = append(s.Errors, newCheckError(source, target, err))
+}
+
+func newCheckError(source string, target string, err error) CheckError {
+	return CheckError{
+		Source: source,
+		Target: target,
+		Kind:   checkErrorKind(err),
+		Err:    err,
+	}
+}
+
+func checkErrorKind(err error) CheckErrorKind {
+	if certFileError, ok := errors.AsType[*CertificateFileError](err); ok && certFileError.Kind != "" {
+		return certFileError.Kind
+	}
+	return CheckErrorRead
 }
 
 func certificatesFromX509(source string, target string, certs []*x509.Certificate, now time.Time) []Certificate {

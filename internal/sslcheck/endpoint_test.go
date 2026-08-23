@@ -44,7 +44,6 @@ func TestParseEndpoint(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -52,15 +51,7 @@ func TestParseEndpoint(t *testing.T) {
 			if err != nil {
 				t.Fatalf("ParseEndpoint() error = %v", err)
 			}
-			if got.Raw != tc.raw {
-				t.Fatalf("Raw = %q, want %q", got.Raw, tc.raw)
-			}
-			if got.Address != tc.address {
-				t.Fatalf("Address = %q, want %q", got.Address, tc.address)
-			}
-			if got.ServerName != tc.serverName {
-				t.Fatalf("ServerName = %q, want %q", got.ServerName, tc.serverName)
-			}
+			assertEndpoint(t, got, tc.raw, tc.address, tc.serverName)
 		})
 	}
 }
@@ -70,12 +61,17 @@ func TestParseEndpointRejectsUnsupportedValues(t *testing.T) {
 
 	tests := []string{
 		"",
-		"http://example.org:80",
+		"ftp://example.org:21",
 		"https://example.org:443/path",
+		"example.org:",
+		"example.org:https",
+		"example.org:0",
+		"example.org:65536",
+		"example.org:99999",
+		"[::1]:0",
 	}
 
 	for _, raw := range tests {
-		raw := raw
 		t.Run(raw, func(t *testing.T) {
 			t.Parallel()
 
@@ -107,7 +103,7 @@ func TestParseEndpoints(t *testing.T) {
 func TestParseEndpointsReturnsFirstError(t *testing.T) {
 	t.Parallel()
 
-	if _, err := ParseEndpoints([]string{"example.org", "http://example.org"}); err == nil {
+	if _, err := ParseEndpoints([]string{"example.org", "ftp://example.org"}); err == nil {
 		t.Fatal("ParseEndpoints() error = nil, want error")
 	}
 }
@@ -126,6 +122,14 @@ func TestEndpointFromAddress(t *testing.T) {
 		{
 			name:       "host default port",
 			address:    " example.org ",
+			wantRaw:    "example.org:443",
+			wantAddr:   "example.org:443",
+			serverName: "example.org",
+		},
+		{
+			name:       "empty port defaults to 443",
+			address:    "example.org",
+			port:       "",
 			wantRaw:    "example.org:443",
 			wantAddr:   "example.org:443",
 			serverName: "example.org",
@@ -157,7 +161,6 @@ func TestEndpointFromAddress(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -165,15 +168,7 @@ func TestEndpointFromAddress(t *testing.T) {
 			if err != nil {
 				t.Fatalf("EndpointFromAddress() error = %v", err)
 			}
-			if got.Raw != tc.wantRaw {
-				t.Fatalf("Raw = %q, want %q", got.Raw, tc.wantRaw)
-			}
-			if got.Address != tc.wantAddr {
-				t.Fatalf("Address = %q, want %q", got.Address, tc.wantAddr)
-			}
-			if got.ServerName != tc.serverName {
-				t.Fatalf("ServerName = %q, want %q", got.ServerName, tc.serverName)
-			}
+			assertEndpoint(t, got, tc.wantRaw, tc.wantAddr, tc.serverName)
 		})
 	}
 }
@@ -195,7 +190,6 @@ func TestEndpointFromAddressRejectsInvalidValues(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -203,5 +197,19 @@ func TestEndpointFromAddressRejectsInvalidValues(t *testing.T) {
 				t.Fatal("EndpointFromAddress() error = nil, want error")
 			}
 		})
+	}
+}
+
+func assertEndpoint(t *testing.T, got Endpoint, wantRaw string, wantAddress string, wantServerName string) {
+	t.Helper()
+
+	if got.Raw != wantRaw {
+		t.Fatalf("Raw = %q, want %q", got.Raw, wantRaw)
+	}
+	if got.Address != wantAddress {
+		t.Fatalf("Address = %q, want %q", got.Address, wantAddress)
+	}
+	if got.ServerName != wantServerName {
+		t.Fatalf("ServerName = %q, want %q", got.ServerName, wantServerName)
 	}
 }

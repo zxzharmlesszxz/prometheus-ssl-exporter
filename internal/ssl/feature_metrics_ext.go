@@ -92,8 +92,8 @@ func CollectFeatureMetrics(ctx featurekit.FeatureMetricsContext[Snapshot], ch ch
 }
 
 func collectSourceHealthMetrics(ctx featurekit.FeatureMetricsContext[Snapshot], ch chan<- prometheus.Metric, snapshot Snapshot) {
-	collectSourceHealthResult(ctx, ch, fileMetricIDs, snapshot.FileResult, sourceValid(snapshot.ssl, "file", snapshot.ssl.ConfiguredCertificateFiles))
-	collectSourceHealthResult(ctx, ch, targetMetricIDs, snapshot.TargetResult, sourceValid(snapshot.ssl, "target", snapshot.ssl.ConfiguredTargets))
+	collectSourceHealthResult(ctx, ch, fileMetricIDs, snapshot.FileResult, sourceHealthy(snapshot.ssl, "file", snapshot.ssl.ConfiguredCertificateFiles, true))
+	collectSourceHealthResult(ctx, ch, targetMetricIDs, snapshot.TargetResult, sourceHealthy(snapshot.ssl, "target", snapshot.ssl.ConfiguredTargets, true))
 }
 
 func collectSourceHealthResult(ctx featurekit.FeatureMetricsContext[Snapshot], ch chan<- prometheus.Metric, ids featurekit.FileScrapeMetricIDs, result framework.FileScrapeResult, valid bool) {
@@ -107,23 +107,6 @@ func collectSourceHealthResult(ctx featurekit.FeatureMetricsContext[Snapshot], c
 	ch <- prometheus.MustNewConstMetric(ctx.Descriptors.Get(ids.ReadErrorsTotal), prometheus.CounterValue, float64(result.ReadErrorsTotal), labelValues...)
 	ch <- prometheus.MustNewConstMetric(ctx.Descriptors.Get(ids.ParseErrorsTotal), prometheus.CounterValue, float64(result.ParseErrorsTotal), labelValues...)
 	ch <- prometheus.MustNewConstMetric(ctx.Descriptors.Get(ids.ScrapeDurationSeconds), prometheus.GaugeValue, result.ScrapeDurationSeconds, labelValues...)
-}
-
-func sourceValid(snapshot sslcheck.Snapshot, source string, configured int) bool {
-	if configured == 0 {
-		return false
-	}
-	for _, status := range snapshot.Checks {
-		if status.Source == source && !status.Success {
-			return false
-		}
-	}
-	for _, chain := range snapshot.ChainResults {
-		if chain.Source == source && !chain.ChainVerified {
-			return false
-		}
-	}
-	return true
 }
 
 func LogFeatureSnapshotError(ctx featurekit.FeatureMetricsContext[Snapshot], logger *slog.Logger, snapshot Snapshot) {

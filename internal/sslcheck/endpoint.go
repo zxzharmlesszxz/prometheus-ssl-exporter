@@ -44,12 +44,13 @@ func ParseEndpoint(raw string) (Endpoint, error) {
 	if err != nil {
 		return Endpoint{}, err
 	}
+	port, err = normalizePort(port)
+	if err != nil {
+		return Endpoint{}, err
+	}
 	serverName := strings.Trim(host, "[]")
 	if serverName == "" {
 		return Endpoint{}, fmt.Errorf("endpoint %q has no host", value)
-	}
-	if port == "" {
-		return Endpoint{}, fmt.Errorf("endpoint %q has no port", value)
 	}
 
 	return Endpoint{
@@ -127,17 +128,26 @@ func normalizePort(value string) (string, error) {
 func splitHostPort(value string, defaultPort string) (string, string, error) {
 	host, port, err := net.SplitHostPort(value)
 	if err == nil {
+		if port == "" {
+			return "", "", fmt.Errorf("endpoint %q has empty port", value)
+		}
 		return host, port, nil
 	}
 
-	if strings.Contains(err.Error(), "too many colons") {
-		if ip := net.ParseIP(value); ip != nil {
-			return value, defaultPort, nil
-		}
-		return "", "", fmt.Errorf("endpoint %q looks like IPv6; use brackets, for example [%s]:443", value, value)
-	}
-	if strings.Contains(err.Error(), "missing port in address") {
+	if ip := net.ParseIP(value); ip != nil {
 		return value, defaultPort, nil
+	}
+	if strings.HasPrefix(value, "[") {
+		closing := strings.LastIndex(value, "]")
+		if closing == len(value)-1 {
+			return strings.Trim(value, "[]"), defaultPort, nil
+		}
+	}
+	if strings.Count(value, ":") == 0 {
+		return value, defaultPort, nil
+	}
+	if strings.Count(value, ":") > 1 {
+		return "", "", fmt.Errorf("endpoint %q looks like IPv6; use brackets, for example [%s]:443", value, value)
 	}
 
 	return "", "", fmt.Errorf("parse endpoint %q: %w", value, err)

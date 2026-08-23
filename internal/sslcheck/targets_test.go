@@ -71,7 +71,6 @@ func TestParseTargetsRejectsInvalidValues(t *testing.T) {
 	}
 
 	for _, raw := range tests {
-		raw := raw
 		t.Run(raw, func(t *testing.T) {
 			t.Parallel()
 
