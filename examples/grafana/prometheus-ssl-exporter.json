@@ -347,7 +347,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "avg(time() - (ssl_exporter_last_successful_collection_timestamp_seconds{job=~\"$job\"} > 0))",
+                        "expr": "avg((time() - ssl_exporter_last_successful_collection_timestamp_seconds{job=~\"$job\"}) and ssl_exporter_last_successful_collection_timestamp_seconds{job=~\"$job\"} > 0)",
                         "legendFormat": "age",
                         "range": false,
                         "instant": true
@@ -964,7 +964,7 @@
                       },
                       "spec": {
                         "editorMode": "code",
-                        "expr": "time() - (ssl_exporter_last_successful_collection_timestamp_seconds{job=~\"$job\"} > 0)",
+                        "expr": "(time() - ssl_exporter_last_successful_collection_timestamp_seconds{job=~\"$job\"}) and ssl_exporter_last_successful_collection_timestamp_seconds{job=~\"$job\"} > 0",
                         "legendFormat": "{{instance}} success age",
                         "range": true,
                         "instant": false

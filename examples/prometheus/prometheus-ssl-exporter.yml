@@ -1,10 +1,10 @@
 groups:
-  # IMPORTANT: Replace `job` matcher with your actual Prometheus scrape job name(s).
-  # Example: job=~"ssl-exporter|ssl_exporter|prometheus-ssl-exporter|prometheus-ssl_exporter"
+  # IMPORTANT: Replace the job matcher when your Prometheus scrape job uses a custom name.
+  # Default matcher: job=~"^(prometheus[_-])?ssl[_-]exporter$"
   - name: prometheus-ssl-exporter
     rules:
       - alert: PrometheusSslExporterDown
-        expr: up{job=~"(prometheus-)?ssl[_-]exporter"} == 0
+        expr: up{job=~"^(prometheus[_-])?ssl[_-]exporter$"} == 0
         for: 5m
         labels:
           severity: warning
@@ -13,7 +13,7 @@ groups:
           description: Prometheus cannot scrape prometheus-ssl-exporter.
 
       - alert: SslExporterCollectionStale
-        expr: (time() - ssl_exporter_last_successful_collection_timestamp_seconds{job=~"(prometheus-)?ssl[_-]exporter"} > 300) and ssl_exporter_last_successful_collection_timestamp_seconds{job=~"(prometheus-)?ssl[_-]exporter"} > 0
+        expr: ((time() - ssl_exporter_last_successful_collection_timestamp_seconds{job=~"^(prometheus[_-])?ssl[_-]exporter$"}) and ssl_exporter_last_successful_collection_timestamp_seconds{job=~"^(prometheus[_-])?ssl[_-]exporter$"} > 0) > 300
         for: 5m
         labels:
           severity: warning
@@ -22,7 +22,7 @@ groups:
           description: Last successful SSL collection was more than 5 minutes ago.
 
       - alert: SslExporterCollectionFailed
-        expr: ssl_exporter_last_collection_success{job=~"(prometheus-)?ssl[_-]exporter"} == 0
+        expr: ssl_exporter_last_collection_success{job=~"^(prometheus[_-])?ssl[_-]exporter$"} == 0
         for: 10m
         labels:
           severity: warning
@@ -31,7 +31,7 @@ groups:
           description: Last SSL certificate collection finished with errors.
 
       - alert: SslCertificateNotYetValid
-        expr: ssl_certificate_temporarily_valid{job=~"(prometheus-)?ssl[_-]exporter",chain_index="0"} == 0 and ssl_certificate_expires_in_seconds{job=~"(prometheus-)?ssl[_-]exporter",chain_index="0"} >= 0
+        expr: ssl_certificate_temporarily_valid{job=~"^(prometheus[_-])?ssl[_-]exporter$",chain_index="0"} == 0 and ssl_certificate_expires_in_seconds{job=~"^(prometheus[_-])?ssl[_-]exporter$",chain_index="0"} >= 0
         for: 10m
         labels:
           severity: warning
@@ -40,7 +40,7 @@ groups:
           description: SSL certificate for {{ $labels.target }} has a NotBefore timestamp in the future.
 
       - alert: SslCertificateCheckFailed
-        expr: ssl_check_success{job=~"(prometheus-)?ssl[_-]exporter"} == 0
+        expr: ssl_check_success{job=~"^(prometheus[_-])?ssl[_-]exporter$"} == 0
         for: 10m
         labels:
           severity: warning
@@ -49,7 +49,7 @@ groups:
           description: SSL check (connection or certificate) failed for {{ $labels.source }} {{ $labels.target }}.
 
       - alert: SslCertificateChainVerificationFailed
-        expr: ssl_certificate_chain_verified{job=~"(prometheus-)?ssl[_-]exporter"} == 0
+        expr: ssl_certificate_chain_verified{job=~"^(prometheus[_-])?ssl[_-]exporter$"} == 0
         for: 10m
         labels:
           severity: warning
@@ -58,7 +58,7 @@ groups:
           description: TLS certificate chain verification failed for {{ $labels.source }} {{ $labels.target }}.
 
       - alert: SslCertificateExpiresSoon
-        expr: ssl_certificate_expires_in_seconds{job=~"(prometheus-)?ssl[_-]exporter",chain_index="0"} < 14 * 24 * 60 * 60 and ssl_certificate_expires_in_seconds{job=~"(prometheus-)?ssl[_-]exporter",chain_index="0"} >= 0
+        expr: ssl_certificate_expires_in_seconds{job=~"^(prometheus[_-])?ssl[_-]exporter$",chain_index="0"} < 14 * 24 * 60 * 60 and ssl_certificate_expires_in_seconds{job=~"^(prometheus[_-])?ssl[_-]exporter$",chain_index="0"} >= 0
         for: 30m
         labels:
           severity: warning
@@ -67,7 +67,7 @@ groups:
           description: SSL certificate for {{ $labels.target }} expires in less than 14 days.
 
       - alert: SslCertificateExpiresCritical
-        expr: ssl_certificate_expires_in_seconds{job=~"(prometheus-)?ssl[_-]exporter",chain_index="0"} < 2 * 24 * 60 * 60 and ssl_certificate_expires_in_seconds{job=~"(prometheus-)?ssl[_-]exporter",chain_index="0"} >= 0
+        expr: ssl_certificate_expires_in_seconds{job=~"^(prometheus[_-])?ssl[_-]exporter$",chain_index="0"} < 2 * 24 * 60 * 60 and ssl_certificate_expires_in_seconds{job=~"^(prometheus[_-])?ssl[_-]exporter$",chain_index="0"} >= 0
         for: 10m
         labels:
           severity: critical
@@ -76,7 +76,7 @@ groups:
           description: SSL certificate for {{ $labels.target }} expires in less than 2 days.
 
       - alert: SslCertificateExpired
-        expr: ssl_certificate_expires_in_seconds{job=~"(prometheus-)?ssl[_-]exporter",chain_index="0"} < 0
+        expr: ssl_certificate_expires_in_seconds{job=~"^(prometheus[_-])?ssl[_-]exporter$",chain_index="0"} < 0
         for: 5m
         labels:
           severity: critical
@@ -85,7 +85,7 @@ groups:
           description: SSL certificate for {{ $labels.target }} is expired.
 
       - alert: SslFileSourceDown
-        expr: ssl_file_up{job=~"(prometheus-)?ssl[_-]exporter"} == 0
+        expr: ssl_file_up{job=~"^(prometheus[_-])?ssl[_-]exporter$"} == 0
         for: 10m
         labels:
           severity: warning
@@ -94,7 +94,7 @@ groups:
           description: prometheus-ssl-exporter cannot read one or more configured certificate files on {{ $labels.instance }}.
 
       - alert: SslFileSourceInvalid
-        expr: ssl_file_up{job=~"(prometheus-)?ssl[_-]exporter"} == 1 and ssl_file_valid{job=~"(prometheus-)?ssl[_-]exporter"} == 0
+        expr: ssl_file_up{job=~"^(prometheus[_-])?ssl[_-]exporter$"} == 1 and ssl_file_valid{job=~"^(prometheus[_-])?ssl[_-]exporter$"} == 0
         for: 10m
         labels:
           severity: warning
@@ -103,7 +103,7 @@ groups:
           description: prometheus-ssl-exporter can read configured certificate files on {{ $labels.instance }}, but at least one file did not produce valid certificate data.
 
       - alert: SslTargetSourceDown
-        expr: ssl_target_up{job=~"(prometheus-)?ssl[_-]exporter"} == 0
+        expr: ssl_target_up{job=~"^(prometheus[_-])?ssl[_-]exporter$"} == 0
         for: 10m
         labels:
           severity: warning
@@ -112,7 +112,7 @@ groups:
           description: prometheus-ssl-exporter cannot collect one or more configured TLS targets on {{ $labels.instance }}.
 
       - alert: SslTargetSourceInvalid
-        expr: ssl_target_up{job=~"(prometheus-)?ssl[_-]exporter"} == 1 and ssl_target_valid{job=~"(prometheus-)?ssl[_-]exporter"} == 0
+        expr: ssl_target_up{job=~"^(prometheus[_-])?ssl[_-]exporter$"} == 1 and ssl_target_valid{job=~"^(prometheus[_-])?ssl[_-]exporter$"} == 0
         for: 10m
         labels:
           severity: warning
@@ -122,8 +122,8 @@ groups:
 
       - alert: SslSourceReadErrors
         expr: >-
-          increase(ssl_file_read_errors_total{job=~"(prometheus-)?ssl[_-]exporter"}[30m]) > 0
-          or increase(ssl_target_read_errors_total{job=~"(prometheus-)?ssl[_-]exporter"}[30m]) > 0
+          increase(ssl_file_read_errors_total{job=~"^(prometheus[_-])?ssl[_-]exporter$"}[30m]) > 0
+          or increase(ssl_target_read_errors_total{job=~"^(prometheus[_-])?ssl[_-]exporter$"}[30m]) > 0
         for: 0m
         labels:
           severity: warning
@@ -133,8 +133,8 @@ groups:
 
       - alert: SslSourceParseErrors
         expr: >-
-          increase(ssl_file_parse_errors_total{job=~"(prometheus-)?ssl[_-]exporter"}[30m]) > 0
-          or increase(ssl_target_parse_errors_total{job=~"(prometheus-)?ssl[_-]exporter"}[30m]) > 0
+          increase(ssl_file_parse_errors_total{job=~"^(prometheus[_-])?ssl[_-]exporter$"}[30m]) > 0
+          or increase(ssl_target_parse_errors_total{job=~"^(prometheus[_-])?ssl[_-]exporter$"}[30m]) > 0
         for: 0m
         labels:
           severity: warning

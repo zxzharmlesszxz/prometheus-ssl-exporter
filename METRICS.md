@@ -78,14 +78,15 @@ Duration in seconds of the latest SSL collection work for the file source.
 
 `ssl_file_read_errors_total`
 
-Total number of local file source errors observed by the exporter. This includes
-certificate file read/parse errors and custom CA read/parse errors.
+Total number of local file source read errors observed by the exporter. This
+is a monotonically increasing counter and includes certificate file read errors
+and custom CA file read errors.
 
 `ssl_file_parse_errors_total`
 
-Reserved framework source-health counter for parse-style errors. SSL currently
-reports source failures through `ssl_file_read_errors_total` and validity
-through `ssl_file_valid`, so this counter is emitted as `0`.
+Total number of local file source parse errors observed by the exporter. This
+is a monotonically increasing counter and includes certificate file parse errors
+and custom CA file parse errors.
 
 `ssl_target_up`
 
@@ -111,14 +112,14 @@ Duration in seconds of the latest SSL collection work for the target source.
 `ssl_target_read_errors_total`
 
 Total number of remote target source errors observed by the exporter. This
-includes TLS connection failures, missing peer certificates, and custom CA
-read/parse errors.
+is a monotonically increasing counter and includes TLS connection failures,
+missing peer certificates, and custom CA file read errors.
 
 `ssl_target_parse_errors_total`
 
-Reserved framework source-health counter for parse-style errors. SSL currently
-reports target source failures through `ssl_target_read_errors_total` and
-validity through `ssl_target_valid`, so this counter is emitted as `0`.
+Total number of remote target source parse errors observed by the exporter. This
+is a monotonically increasing counter and includes custom CA file parse errors
+for remote targets.
 
 ## Certificate Validity
 

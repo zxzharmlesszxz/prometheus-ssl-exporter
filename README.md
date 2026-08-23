@@ -90,7 +90,7 @@ Useful flags:
 --log.format
 ```
 
-By default, the exporter listens on `:9219`, refreshes certificate data every `5m`, uses a `5s` timeout per remote TLS target, and checks up to `8` remote targets concurrently.
+By default, the exporter listens on `:9219`, refreshes certificate data every `1h`, uses a `5s` timeout per remote TLS target, and checks up to `8` remote targets concurrently.
 If no `--ssl.config-file` value is provided, `/etc/prometheus/prometheus-ssl-exporter.yml` is loaded when it exists; if it is missing, defaults and flags are used.
 The generated `examples/prometheus-ssl-exporter.yml` file lists every supported SSL config key with its default value.
 Make, Compose, and smoke defaults use `FEATURE_CONFIG_FILE`, which defaults to `prometheus-ssl-exporter.yml`, and pass that path explicitly with `--ssl.config-file=...`.
@@ -139,13 +139,25 @@ ssl_certificate_not_before_timestamp_seconds{source="target",target="google.com:
 ssl_certificate_not_after_timestamp_seconds{source="target",target="google.com:443",chain_index="0",subject_cn="*.google.com",issuer_cn="WR2",serial_number="..."} 1.77912e+09
 ssl_certificate_expires_in_seconds{source="target",target="google.com:443",chain_index="0",subject_cn="*.google.com",issuer_cn="WR2",serial_number="..."} 4.2e+06
 ssl_certificate_temporarily_valid{source="target",target="google.com:443",chain_index="0",subject_cn="*.google.com",issuer_cn="WR2",serial_number="..."} 1
+ssl_file_up{source="file"} 1
+ssl_file_valid{source="file"} 1
+ssl_file_mtime_seconds{source="file"} 1.77912e+09
+ssl_file_scrape_duration_seconds{source="file"} 0.381
+ssl_file_read_errors_total{source="file"} 0
+ssl_file_parse_errors_total{source="file"} 0
 ssl_target_up{source="target"} 1
 ssl_target_valid{source="target"} 1
+ssl_target_mtime_seconds{source="target"} 1.77912e+09
 ssl_target_scrape_duration_seconds{source="target"} 0.381
 ssl_target_read_errors_total{source="target"} 0
+ssl_target_parse_errors_total{source="target"} 0
+ssl_exporter_configured_certificate_files 1
+ssl_exporter_configured_targets 1
+ssl_exporter_collection_duration_seconds_count 1
 ssl_exporter_last_collection_success 1
 ssl_exporter_last_collection_timestamp_seconds 1.77912e+09
 ssl_exporter_last_successful_collection_timestamp_seconds 1.77912e+09
+ssl_exporter_build_info{version="v0.1.0",revision="..."} 1
 ```
 
 For remote endpoints, `chain_index="0"` is the leaf certificate.
@@ -167,7 +179,7 @@ It starts:
 - `prometheus`
 - `grafana`
 
-The compose example checks `google.com:443` and `yahoo.com:443` through
+The compose example checks `example.com:443` and `thisisnonexistent.com:443` through
 [`docker-compose.override.yml`](docker-compose.override.yml).
 
 ```bash
@@ -250,15 +262,16 @@ make docker-buildx-push VERSION=v0.1.0 DOCKER_IMAGE=registry.example.com/prometh
 ```
 
 The GitLab CI file and GitHub Actions workflow both delegate to the same Makefile targets.
-The GitHub Actions workflow runs the jobs in Alpine-based containers (`golang:1.26.3-alpine` and `docker:27` with `docker:27-dind`).
+The GitHub Actions workflow runs the jobs in Alpine-based containers (`golang:1.27.0-alpine` and `docker:27` with `docker:27-dind`).
 Tags build release archives and can publish a multi-platform Docker image to the GitLab registry or GitHub Container Registry.
 
 Docker image publishing policy:
 
 - branch and pull request pipelines build and smoke-test images but do not push them
-- tag pipelines publish only the matching release tag, for example `v0.1.0`
+- tag pipelines publish the matching release tag, for example `v0.1.0`
+- GitHub Container Registry tag pipelines also publish `latest`
 - images are published as multi-architecture `linux/amd64` and `linux/arm64`
-- `latest` and commit SHA tags are not published by default
+- commit SHA tags are not published by default
 - binary release archives remain the primary non-container distribution
 
 ## Architecture
