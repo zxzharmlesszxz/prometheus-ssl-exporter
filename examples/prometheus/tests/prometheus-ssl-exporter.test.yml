@@ -1,0 +1,269 @@
+rule_files:
+  - ../prometheus-ssl-exporter.yml
+
+evaluation_interval: 1m
+
+tests:
+  - name: Exporter scrape and collection health alerts keep exporter labels
+    interval: 1m
+    input_series:
+      - series: 'up{job="ssl-exporter",instance="down-exporter"}'
+        values: '0x12'
+      - series: 'ssl_exporter_last_collection_success{job="ssl-exporter",instance="failed-exporter"}'
+        values: '0x12'
+      - series: 'ssl_exporter_last_successful_collection_timestamp_seconds{job="ssl-exporter",instance="stale-exporter"}'
+        values: '1x12'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: PrometheusSslExporterDown
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: ssl-exporter
+              instance: down-exporter
+            exp_annotations:
+              summary: prometheus-ssl-exporter is down
+              description: Prometheus cannot scrape prometheus-ssl-exporter.
+      - eval_time: 11m
+        alertname: SslExporterCollectionFailed
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: ssl-exporter
+              instance: failed-exporter
+            exp_annotations:
+              summary: SSL exporter collection failed
+              description: Last SSL certificate collection finished with errors.
+      - eval_time: 11m
+        alertname: SslExporterCollectionStale
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: ssl-exporter
+              instance: stale-exporter
+            exp_annotations:
+              summary: SSL exporter collection is stale
+              description: Last successful SSL collection was more than 5 minutes ago.
+
+  - name: Certificate check and verification alerts keep target labels
+    interval: 1m
+    input_series:
+      - series: 'ssl_check_success{job="ssl-exporter",instance="ssl-exporter:9219",source="target",target="bad.example:443"}'
+        values: '0x12'
+      - series: 'ssl_certificate_chain_verified{job="ssl-exporter",instance="ssl-exporter:9219",source="target",target="chain.example:443",chain_index="0"}'
+        values: '0x12'
+      - series: 'ssl_certificate_temporarily_valid{job="ssl-exporter",instance="ssl-exporter:9219",source="target",target="future.example:443",chain_index="0"}'
+        values: '0x12'
+      - series: 'ssl_certificate_expires_in_seconds{job="ssl-exporter",instance="ssl-exporter:9219",source="target",target="future.example:443",chain_index="0"}'
+        values: '86400x12'
+    alert_rule_test:
+      - eval_time: 11m
+        alertname: SslCertificateCheckFailed
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: ssl-exporter
+              instance: ssl-exporter:9219
+              source: target
+              target: bad.example:443
+            exp_annotations:
+              summary: SSL certificate check failed
+              description: SSL check (connection or certificate) failed for target bad.example:443.
+      - eval_time: 11m
+        alertname: SslCertificateChainVerificationFailed
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: ssl-exporter
+              instance: ssl-exporter:9219
+              source: target
+              target: chain.example:443
+              chain_index: 0
+            exp_annotations:
+              summary: SSL certificate chain verification failed
+              description: TLS certificate chain verification failed for target chain.example:443.
+      - eval_time: 11m
+        alertname: SslCertificateNotYetValid
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: ssl-exporter
+              instance: ssl-exporter:9219
+              source: target
+              target: future.example:443
+              chain_index: 0
+            exp_annotations:
+              summary: SSL certificate is not yet valid
+              description: SSL certificate for future.example:443 has a NotBefore timestamp in the future.
+
+  - name: Certificate expiration alerts respect their thresholds
+    interval: 1m
+    input_series:
+      - series: 'ssl_certificate_expires_in_seconds{job="ssl-exporter",instance="ssl-exporter:9219",source="target",target="soon.example:443",chain_index="0"}'
+        values: '604800x40'
+      - series: 'ssl_certificate_expires_in_seconds{job="ssl-exporter",instance="ssl-exporter:9219",source="target",target="critical.example:443",chain_index="0"}'
+        values: '86400x40'
+      - series: 'ssl_certificate_expires_in_seconds{job="ssl-exporter",instance="ssl-exporter:9219",source="target",target="expired.example:443",chain_index="0"}'
+        values: '-1x40'
+    alert_rule_test:
+      - eval_time: 31m
+        alertname: SslCertificateExpiresSoon
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: ssl-exporter
+              instance: ssl-exporter:9219
+              source: target
+              target: soon.example:443
+              chain_index: 0
+            exp_annotations:
+              summary: SSL certificate expires soon
+              description: SSL certificate for soon.example:443 expires in less than 14 days.
+          - exp_labels:
+              severity: warning
+              job: ssl-exporter
+              instance: ssl-exporter:9219
+              source: target
+              target: critical.example:443
+              chain_index: 0
+            exp_annotations:
+              summary: SSL certificate expires soon
+              description: SSL certificate for critical.example:443 expires in less than 14 days.
+      - eval_time: 11m
+        alertname: SslCertificateExpiresCritical
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              job: ssl-exporter
+              instance: ssl-exporter:9219
+              source: target
+              target: critical.example:443
+              chain_index: 0
+            exp_annotations:
+              summary: SSL certificate expires very soon
+              description: SSL certificate for critical.example:443 expires in less than 2 days.
+      - eval_time: 6m
+        alertname: SslCertificateExpired
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              job: ssl-exporter
+              instance: ssl-exporter:9219
+              source: target
+              target: expired.example:443
+              chain_index: 0
+            exp_annotations:
+              summary: SSL certificate expired
+              description: SSL certificate for expired.example:443 is expired.
+
+  - name: Source health alerts distinguish unavailable and invalid sources
+    interval: 1m
+    input_series:
+      - series: 'ssl_file_up{job="ssl-exporter",instance="ssl-exporter:9219",source="file"}'
+        values: '0x12'
+      - series: 'ssl_file_up{job="ssl-exporter",instance="file-invalid",source="file"}'
+        values: '1x12'
+      - series: 'ssl_file_valid{job="ssl-exporter",instance="file-invalid",source="file"}'
+        values: '0x12'
+      - series: 'ssl_target_up{job="ssl-exporter",instance="ssl-exporter:9219",source="target"}'
+        values: '0x12'
+      - series: 'ssl_target_up{job="ssl-exporter",instance="target-invalid",source="target"}'
+        values: '1x12'
+      - series: 'ssl_target_valid{job="ssl-exporter",instance="target-invalid",source="target"}'
+        values: '0x12'
+    alert_rule_test:
+      - eval_time: 11m
+        alertname: SslFileSourceDown
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: ssl-exporter
+              instance: ssl-exporter:9219
+              source: file
+            exp_annotations:
+              summary: SSL file source is unavailable
+              description: prometheus-ssl-exporter cannot read one or more configured certificate files on ssl-exporter:9219.
+      - eval_time: 11m
+        alertname: SslFileSourceInvalid
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: ssl-exporter
+              instance: file-invalid
+              source: file
+            exp_annotations:
+              summary: SSL file source is readable but invalid
+              description: prometheus-ssl-exporter can read configured certificate files on file-invalid, but at least one file did not produce valid certificate data.
+      - eval_time: 11m
+        alertname: SslTargetSourceDown
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: ssl-exporter
+              instance: ssl-exporter:9219
+              source: target
+            exp_annotations:
+              summary: SSL target source is unavailable
+              description: prometheus-ssl-exporter cannot collect one or more configured TLS targets on ssl-exporter:9219.
+      - eval_time: 11m
+        alertname: SslTargetSourceInvalid
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: ssl-exporter
+              instance: target-invalid
+              source: target
+            exp_annotations:
+              summary: SSL target source is readable but invalid
+              description: prometheus-ssl-exporter collected configured TLS targets on target-invalid, but at least one target did not produce valid certificate data.
+
+  - name: Source error counter increases produce diagnostic alerts
+    interval: 1m
+    input_series:
+      - series: 'ssl_file_read_errors_total{job="ssl-exporter",instance="file-read",source="file"}'
+        values: '0x14 1x17'
+      - series: 'ssl_target_read_errors_total{job="ssl-exporter",instance="target-read",source="target"}'
+        values: '0x14 1x17'
+      - series: 'ssl_file_parse_errors_total{job="ssl-exporter",instance="file-parse",source="file"}'
+        values: '0x14 1x17'
+      - series: 'ssl_target_parse_errors_total{job="ssl-exporter",instance="target-parse",source="target"}'
+        values: '0x14 1x17'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: SslSourceReadErrors
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: ssl-exporter
+              instance: file-read
+              source: file
+            exp_annotations:
+              summary: SSL source read errors observed
+              description: prometheus-ssl-exporter observed one or more file read or target collection errors in the last 30 minutes.
+          - exp_labels:
+              severity: warning
+              job: ssl-exporter
+              instance: target-read
+              source: target
+            exp_annotations:
+              summary: SSL source read errors observed
+              description: prometheus-ssl-exporter observed one or more file read or target collection errors in the last 30 minutes.
+      - eval_time: 30m
+        alertname: SslSourceParseErrors
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: ssl-exporter
+              instance: file-parse
+              source: file
+            exp_annotations:
+              summary: SSL source parse errors observed
+              description: prometheus-ssl-exporter observed one or more certificate parse errors in the last 30 minutes.
+          - exp_labels:
+              severity: warning
+              job: ssl-exporter
+              instance: target-parse
+              source: target
+            exp_annotations:
+              summary: SSL source parse errors observed
+              description: prometheus-ssl-exporter observed one or more certificate parse errors in the last 30 minutes.
