@@ -50,6 +50,10 @@ tests:
     input_series:
       - series: 'ssl_check_success{job="ssl-exporter",instance="ssl-exporter:9219",source="target",target="bad.example:443"}'
         values: '0x12'
+      - series: 'ssl_check_success{job="ssl-exporter",instance="ssl-exporter:9219",source="target",target="stale.example:443"}'
+        values: '0x12'
+      - series: 'ssl_target_using_stale_result{job="ssl-exporter",instance="ssl-exporter:9219",target="stale.example:443"}'
+        values: '1x12'
       - series: 'ssl_certificate_chain_verified{job="ssl-exporter",instance="ssl-exporter:9219",source="target",target="chain.example:443",chain_index="0"}'
         values: '0x12'
       - series: 'ssl_certificate_temporarily_valid{job="ssl-exporter",instance="ssl-exporter:9219",source="target",target="future.example:443",chain_index="0"}'
@@ -167,6 +171,8 @@ tests:
         values: '0x12'
       - series: 'ssl_target_up{job="ssl-exporter",instance="ssl-exporter:9219",source="target"}'
         values: '0x12'
+      - series: 'ssl_target_consecutive_failures{job="ssl-exporter",instance="ssl-exporter:9219",target="down.example:443"}'
+        values: '3x12'
       - series: 'ssl_target_up{job="ssl-exporter",instance="target-invalid",source="target"}'
         values: '1x12'
       - series: 'ssl_target_valid{job="ssl-exporter",instance="target-invalid",source="target"}'
@@ -201,10 +207,10 @@ tests:
               severity: warning
               job: ssl-exporter
               instance: ssl-exporter:9219
-              source: target
+              target: down.example:443
             exp_annotations:
               summary: SSL target source is unavailable
-              description: prometheus-ssl-exporter cannot collect one or more configured TLS targets on ssl-exporter:9219.
+              description: prometheus-ssl-exporter cannot collect TLS target down.example:443 after repeated attempts.
       - eval_time: 11m
         alertname: SslTargetSourceInvalid
         exp_alerts:
@@ -224,6 +230,8 @@ tests:
         values: '0x14 1x17'
       - series: 'ssl_target_read_errors_total{job="ssl-exporter",instance="target-read",source="target"}'
         values: '0x14 1x17'
+      - series: 'ssl_target_consecutive_failures{job="ssl-exporter",instance="target-read",target="target-read.example:443"}'
+        values: '3x32'
       - series: 'ssl_file_parse_errors_total{job="ssl-exporter",instance="file-parse",source="file"}'
         values: '0x14 1x17'
       - series: 'ssl_target_parse_errors_total{job="ssl-exporter",instance="target-parse",source="target"}'
@@ -244,7 +252,7 @@ tests:
               severity: warning
               job: ssl-exporter
               instance: target-read
-              source: target
+              target: target-read.example:443
             exp_annotations:
               summary: SSL source read errors observed
               description: prometheus-ssl-exporter observed one or more file read or target collection errors in the last 30 minutes.

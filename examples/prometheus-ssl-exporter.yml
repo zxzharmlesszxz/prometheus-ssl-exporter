@@ -2,6 +2,7 @@
 # - targets: []
 # - timeout: 5s
 # - max_concurrent_targets: 8
+# - max_stale_target_failures: 3
 #
 # Remote target item keys:
 # - address: required remote host name or IP address
@@ -24,6 +25,8 @@
 #     ca: /etc/ssl/certs/internal-ca.pem
 # timeout: 5s
 # max_concurrent_targets: 8
+# max_stale_target_failures: 3
 targets: []
 timeout: 5s
 max_concurrent_targets: 8
+max_stale_target_failures: 3

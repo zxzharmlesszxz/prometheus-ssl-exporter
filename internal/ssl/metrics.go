@@ -10,6 +10,9 @@ const (
 	metricCertificateNotAfter         = "certificate_not_after"
 	metricCertificateExpiresIn        = "certificate_expires_in"
 	metricCertificateTemporarilyValid = "certificate_temporarily_valid"
+	metricTargetConsecutiveFailures   = "target_consecutive_failures"
+	metricTargetUsingStaleResult      = "target_using_stale_result"
+	metricTargetLastSuccess           = "target_last_success"
 	metricConfiguredCertificateFiles  = "configured_certificate_files"
 	metricConfiguredTargets           = "configured_targets"
 
@@ -87,6 +90,27 @@ var sslMetricSpecs = []featurekit.FeatureMetricSpec{
 		Name:   "_certificate_temporarily_valid",
 		Help:   "Whether the SSL certificate is currently within its NotBefore and NotAfter validity window",
 		Labels: certificateLabels,
+	},
+	{
+		ID:     metricTargetConsecutiveFailures,
+		Scope:  featurekit.MetricScopeFeature,
+		Name:   "_target_consecutive_failures",
+		Help:   "Number of consecutive remote TLS read failures since the last successful target collection",
+		Labels: []string{"target"},
+	},
+	{
+		ID:     metricTargetUsingStaleResult,
+		Scope:  featurekit.MetricScopeFeature,
+		Name:   "_target_using_stale_result",
+		Help:   "Whether the current remote TLS target metrics are backed by the last known good certificate data after a tolerated read failure",
+		Labels: []string{"target"},
+	},
+	{
+		ID:     metricTargetLastSuccess,
+		Scope:  featurekit.MetricScopeFeature,
+		Name:   "_target_last_success_timestamp_seconds",
+		Help:   "Unix timestamp of the last successful remote TLS target collection",
+		Labels: []string{"target"},
 	},
 	{
 		ID:    metricConfiguredCertificateFiles,

@@ -42,15 +42,20 @@ scaffold sync flow only.
    - `--ssl.refresh-interval`
    - `--ssl.timeout`
    - `--ssl.max-concurrent-targets`
+   - `--ssl.max-stale-target-failures`
 4. The SSL feature extension parses CLI targets and YAML config file targets into local file checks and normalized TLS endpoints, then builds a feature snapshotter and feature metrics.
 5. `framework.SnapshotCollector` reads SSL data through the snapshotter and refreshes certificate data in a background worker every `--ssl.refresh-interval`; scrapes read the latest completed snapshot.
 6. File sources are parsed as PEM first and DER second.
 7. Remote targets are checked with bounded concurrency. Each target is connected with TLS, peer certificates are collected, and the leaf certificate is verified separately against system trust roots or the check-specific CA and hostname.
 8. `server_name`/`sni` can override TLS SNI and hostname verification for remote targets while preserving the configured network address as the metric target.
-9. The feature snapshotter wraps the SSL check snapshot with aggregate
+9. The feature snapshotter can keep last-known-good certificate data for short
+   remote target read failures, controlled by
+   `--ssl.max-stale-target-failures`. The remote TLS check is still attempted on
+   every refresh.
+10. The feature snapshotter wraps the SSL check snapshot with aggregate
    source-health state for `file` and `target`, such as `ssl_file_up`,
    `ssl_target_valid`, source error counters, and refresh duration.
-10. The collector exports per-source check metrics, aggregate source-health
+11. The collector exports per-source check metrics, aggregate source-health
    metrics, certificate validity, chain verification, configured source counts,
    and framework collection health metrics.
 
@@ -59,9 +64,20 @@ scaffold sync flow only.
 A failed file read, parse, or remote TLS connection sets:
 
 - `ssl_check_success{source,target} = 0`
-- `ssl_exporter_last_collection_success = 0`
 - `ssl_file_up{source="file"} = 0` for file source failures
 - `ssl_target_up{source="target"} = 0` for remote target source failures
+
+Without stale-result smoothing, or after the configured stale target failure
+limit is exceeded, the failure also sets:
+
+- `ssl_exporter_last_collection_success = 0`
+
+When a remote target read failure is still within
+`--ssl.max-stale-target-failures`, the exporter keeps the previous certificate
+and chain metrics for that target, sets `ssl_target_using_stale_result{target}`
+to `1`, increments `ssl_target_consecutive_failures{target}`, and keeps the
+framework collection successful. This avoids alert noise for short remote
+hiccups without pretending that `ssl_check_success` or `ssl_target_up` succeeded.
 
 Other configured sources can still produce certificate metrics in the same refresh.
 

@@ -44,6 +44,36 @@ Labels:
 This metric is emitted only for remote TLS targets that returned a certificate
 chain.
 
+## Remote Target Freshness
+
+`ssl_target_consecutive_failures`
+
+Number of consecutive remote TLS read failures since the last successful target
+collection.
+
+Labels:
+
+- `target`
+
+`ssl_target_using_stale_result`
+
+Whether the current remote TLS target certificate metrics are backed by the
+last known good certificate data after a tolerated read failure. The exporter
+still attempts to read the remote certificate on every refresh.
+
+Labels:
+
+- `target`
+
+`ssl_target_last_success_timestamp_seconds`
+
+Unix timestamp of the last successful remote TLS target collection. The value
+is `0` until the target has been collected successfully.
+
+Labels:
+
+- `target`
+
 ## Source Health
 
 Source-health metrics follow the framework source-health naming contract so
@@ -172,6 +202,9 @@ Number of configured remote TLS targets.
 `ssl_exporter_last_collection_success`
 
 Whether the last refresh succeeded for all configured certificate sources.
+Short remote target read failures can be tolerated by stale-result smoothing,
+which keeps the framework collection successful while exposing the target
+failure through target freshness and source-health metrics.
 
 `ssl_exporter_last_collection_timestamp_seconds`
 

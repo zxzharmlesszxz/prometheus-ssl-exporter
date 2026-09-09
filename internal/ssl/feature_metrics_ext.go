@@ -51,6 +51,27 @@ func CollectFeatureMetrics(ctx featurekit.FeatureMetricsContext[Snapshot], ch ch
 		)
 	}
 
+	for _, target := range snapshot.TargetStates {
+		ch <- prometheus.MustNewConstMetric(
+			ctx.Descriptors.Get(metricTargetConsecutiveFailures),
+			prometheus.GaugeValue,
+			float64(target.ConsecutiveFailures),
+			target.Target,
+		)
+		ch <- prometheus.MustNewConstMetric(
+			ctx.Descriptors.Get(metricTargetUsingStaleResult),
+			prometheus.GaugeValue,
+			framework.BoolFloat(target.UsingStaleResult),
+			target.Target,
+		)
+		ch <- prometheus.MustNewConstMetric(
+			ctx.Descriptors.Get(metricTargetLastSuccess),
+			prometheus.GaugeValue,
+			framework.UnixTimestamp(target.LastSuccess),
+			target.Target,
+		)
+	}
+
 	for _, cert := range snapshot.ssl.Certificates {
 		labels := certificateLabelValues(cert)
 		ch <- prometheus.MustNewConstMetric(

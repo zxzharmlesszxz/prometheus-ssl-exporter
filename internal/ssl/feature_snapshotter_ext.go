@@ -2,6 +2,7 @@ package ssl
 
 import (
 	"context"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -48,10 +49,15 @@ func newSnapshotEngine(config Config) (featurekit.SnapshotEngine[Snapshot], erro
 	var fileParseErrors atomic.Uint64
 	var targetErrors atomic.Uint64
 	var targetParseErrors atomic.Uint64
+	var smootherMu sync.Mutex
+	staleTargets := newStaleTargetSmoother(config.MaxStaleTargetFailures)
 
 	return featurekit.SnapshotEngineFunc[Snapshot](func(ctx context.Context, now time.Time) Snapshot {
 		start := time.Now()
 		sslSnapshot := checker.Check(ctx, now)
+		smootherMu.Lock()
+		targetStates := staleTargets.Apply(&sslSnapshot, targets, now)
+		smootherMu.Unlock()
 		errorCounts := countSourceErrors(sslSnapshot)
 		if errorCounts.fileRead > 0 {
 			fileErrors.Add(errorCounts.fileRead)
@@ -71,6 +77,7 @@ func newSnapshotEngine(config Config) (featurekit.SnapshotEngine[Snapshot], erro
 			ssl:          sslSnapshot,
 			FileResult:   sourceHealthResult(sslSnapshot, "file", sslSnapshot.ConfiguredCertificateFiles, fileErrors.Load(), fileParseErrors.Load(), now, duration),
 			TargetResult: sourceHealthResult(sslSnapshot, "target", sslSnapshot.ConfiguredTargets, targetErrors.Load(), targetParseErrors.Load(), now, duration),
+			TargetStates: targetStates,
 		}
 	}), nil
 }

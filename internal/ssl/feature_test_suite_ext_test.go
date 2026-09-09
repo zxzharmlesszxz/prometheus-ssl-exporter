@@ -62,15 +62,18 @@ func NewFeatureTestSpec() FeatureTestSpec {
 			"--" + testFeatureName + ".target=file=/tmp/cert.pem",
 			"--" + testFeatureName + ".timeout=2s",
 			"--" + testFeatureName + ".max-concurrent-targets=3",
+			"--" + testFeatureName + ".max-stale-target-failures=2",
 		},
 		ContractRuntimeConfig: map[string]any{
-			"targets":                []string{"address=example.com,port=443", "file=/tmp/cert.pem"},
-			"timeout":                2 * time.Second,
-			"max_concurrent_targets": 3,
+			"targets":                   []string{"address=example.com,port=443", "file=/tmp/cert.pem"},
+			"timeout":                   2 * time.Second,
+			"max_concurrent_targets":    3,
+			"max_stale_target_failures": 2,
 		},
 		DefaultRuntimeConfig: map[string]any{
-			"timeout":                DefaultTimeout,
-			"max_concurrent_targets": DefaultMaxConcurrentTargets,
+			"timeout":                   DefaultTimeout,
+			"max_concurrent_targets":    DefaultMaxConcurrentTargets,
+			"max_stale_target_failures": DefaultMaxStaleTargetFailures,
 		},
 		CheckDefaultSnapshotter: true,
 	}
@@ -368,6 +371,7 @@ func testExporterRuntimeConfigNormalizesValues(t *testing.T, suite *FeatureTestS
 		"--" + testFeatureName + ".refresh-interval=0s",
 		"--" + testFeatureName + ".timeout=0s",
 		"--" + testFeatureName + ".max-concurrent-targets=0",
+		"--" + testFeatureName + ".max-stale-target-failures=-1",
 	})
 
 	config := exporter.RuntimeConfig()
@@ -379,6 +383,9 @@ func testExporterRuntimeConfigNormalizesValues(t *testing.T, suite *FeatureTestS
 	}
 	if got := exportertest.RuntimeConfigValue(t, config, "max_concurrent_targets"); got != DefaultMaxConcurrentTargets {
 		t.Fatalf("max_concurrent_targets = %v, want %v", got, DefaultMaxConcurrentTargets)
+	}
+	if got := exportertest.RuntimeConfigValue(t, config, "max_stale_target_failures"); got != DefaultMaxStaleTargetFailures {
+		t.Fatalf("max_stale_target_failures = %v, want %v", got, DefaultMaxStaleTargetFailures)
 	}
 	if got := exportertest.RuntimeConfigValue(t, config, "config_file"); got != "/tmp/ssl-targets.yml" {
 		t.Fatalf("config_file = %q, want /tmp/ssl-targets.yml", got)

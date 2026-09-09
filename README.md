@@ -83,6 +83,7 @@ Useful flags:
 --ssl.refresh-interval
 --ssl.timeout
 --ssl.max-concurrent-targets
+--ssl.max-stale-target-failures
 --web.listen-address
 --web.telemetry-path
 --web.enable-pprof
@@ -90,12 +91,13 @@ Useful flags:
 --log.format
 ```
 
-By default, the exporter listens on `:9219`, refreshes certificate data every `1h`, uses a `5s` timeout per remote TLS target, and checks up to `8` remote targets concurrently.
+By default, the exporter listens on `:9219`, refreshes certificate data every `1h`, uses a `5s` timeout per remote TLS target, checks up to `8` remote targets concurrently, and tolerates up to `3` consecutive remote target read failures by keeping the last known good certificate data.
 If no `--ssl.config-file` value is provided, `/etc/prometheus/prometheus-ssl-exporter.yml` is loaded when it exists; if it is missing, defaults and flags are used.
 The generated `examples/prometheus-ssl-exporter.yml` file lists every supported SSL config key with its default value.
 Make, Compose, and smoke defaults use `FEATURE_CONFIG_FILE`, which defaults to `prometheus-ssl-exporter.yml`, and pass that path explicitly with `--ssl.config-file=...`.
 Runtime config can always be overridden with another `--ssl.config-file=...` value.
 Certificate refresh runs through the framework snapshot collector in a background worker; scrapes return the last collected snapshot.
+Remote certificate checks are still attempted on every refresh. When a remote target has a short read failure after a previous successful check, stale-result smoothing keeps the last known good certificate metrics visible and exposes the failure through `ssl_check_success`, `ssl_target_up`, `ssl_target_consecutive_failures`, and `ssl_target_using_stale_result`.
 
 ## Configuration Example
 
@@ -116,6 +118,7 @@ targets:
 
 timeout: 5s
 max_concurrent_targets: 8
+max_stale_target_failures: 3
 ```
 
 Remote target items support `address`, optional `port`, optional `server_name`
@@ -151,6 +154,9 @@ ssl_target_mtime_seconds{source="target"} 1.77912e+09
 ssl_target_scrape_duration_seconds{source="target"} 0.381
 ssl_target_read_errors_total{source="target"} 0
 ssl_target_parse_errors_total{source="target"} 0
+ssl_target_consecutive_failures{target="google.com:443"} 0
+ssl_target_using_stale_result{target="google.com:443"} 0
+ssl_target_last_success_timestamp_seconds{target="google.com:443"} 1.77912e+09
 ssl_exporter_configured_certificate_files 1
 ssl_exporter_configured_targets 1
 ssl_exporter_collection_duration_seconds_count 1
