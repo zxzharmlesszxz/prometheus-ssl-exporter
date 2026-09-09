@@ -206,6 +206,7 @@ Docker Compose provisions Grafana with:
 
 - Prometheus datasource `DS_PROMETHEUS`
 - dashboards from [`examples/grafana`](examples/grafana)
+- alert rules from [`examples/grafana-alerting`](examples/grafana-alerting)
 - default login `admin` / `admin`
 
 Open `http://localhost:3000` after `make compose`.

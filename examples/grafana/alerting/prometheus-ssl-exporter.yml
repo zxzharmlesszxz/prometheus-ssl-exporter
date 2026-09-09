@@ -1,0 +1,904 @@
+apiVersion: 1
+
+deleteRules:
+  - orgId: 1
+    uid: prometheus-ssl-exporter-down
+  - orgId: 1
+    uid: ssl-exporter-collection-stale
+  - orgId: 1
+    uid: ssl-exporter-collection-failed
+  - orgId: 1
+    uid: ssl-certificate-not-yet-valid
+  - orgId: 1
+    uid: ssl-certificate-check-failed
+
+groups:
+  - orgId: 1
+    name: prometheus-ssl-exporter
+    folder: Exporters
+    interval: 1m
+    rules:
+      - uid: ssl-exporter-down
+        title: PrometheusSslExporterDown
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1800
+              to: 0
+            datasourceUid: DS_PROMETHEUS
+            model:
+              datasource:
+                type: prometheus
+                uid: DS_PROMETHEUS
+              editorMode: code
+              expr: "up{job=~\"^(prometheus[_-])?ssl[_-]exporter$\"} == 0"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "prometheus-ssl-exporter is down"
+          description: "Prometheus cannot scrape prometheus-ssl-exporter."
+        labels:
+          severity: warning
+        isPaused: false
+
+      - uid: ssl-collection-stale
+        title: SslExporterCollectionStale
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1800
+              to: 0
+            datasourceUid: DS_PROMETHEUS
+            model:
+              datasource:
+                type: prometheus
+                uid: DS_PROMETHEUS
+              editorMode: code
+              expr: "((time() - ssl_exporter_last_successful_collection_timestamp_seconds{job=~\"^(prometheus[_-])?ssl[_-]exporter$\"}) and ssl_exporter_last_successful_collection_timestamp_seconds{job=~\"^(prometheus[_-])?ssl[_-]exporter$\"} > 0) > 300"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "SSL exporter collection is stale"
+          description: "Last successful SSL collection was more than 5 minutes ago."
+        labels:
+          severity: warning
+        isPaused: false
+
+      - uid: ssl-collection-failed
+        title: SslExporterCollectionFailed
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1800
+              to: 0
+            datasourceUid: DS_PROMETHEUS
+            model:
+              datasource:
+                type: prometheus
+                uid: DS_PROMETHEUS
+              editorMode: code
+              expr: "ssl_exporter_last_collection_success{job=~\"^(prometheus[_-])?ssl[_-]exporter$\"} == 0"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: "SSL exporter collection failed"
+          description: "Last SSL certificate collection finished with errors."
+        labels:
+          severity: warning
+        isPaused: false
+
+      - uid: ssl-cert-not-yet-valid
+        title: SslCertificateNotYetValid
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1800
+              to: 0
+            datasourceUid: DS_PROMETHEUS
+            model:
+              datasource:
+                type: prometheus
+                uid: DS_PROMETHEUS
+              editorMode: code
+              expr: "ssl_certificate_temporarily_valid{job=~\"^(prometheus[_-])?ssl[_-]exporter$\",chain_index=\"0\"} == 0 and ssl_certificate_expires_in_seconds{job=~\"^(prometheus[_-])?ssl[_-]exporter$\",chain_index=\"0\"} >= 0"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: "SSL certificate is not yet valid"
+          description: "SSL certificate for {{ $labels.target }} has a NotBefore timestamp in the future."
+        labels:
+          severity: warning
+        isPaused: false
+
+      - uid: ssl-cert-check-failed
+        title: SslCertificateCheckFailed
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1800
+              to: 0
+            datasourceUid: DS_PROMETHEUS
+            model:
+              datasource:
+                type: prometheus
+                uid: DS_PROMETHEUS
+              editorMode: code
+              expr: "(ssl_check_success{job=~\"^(prometheus[_-])?ssl[_-]exporter$\"} == 0) unless on (job, instance, target) (ssl_target_using_stale_result{job=~\"^(prometheus[_-])?ssl[_-]exporter$\"} == 1)"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: "SSL certificate check failed"
+          description: "SSL check (connection or certificate) failed for {{ $labels.source }} {{ $labels.target }}."
+        labels:
+          severity: warning
+        isPaused: false
+
+      - uid: ssl-cert-chain-failed
+        title: SslCertificateChainVerificationFailed
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1800
+              to: 0
+            datasourceUid: DS_PROMETHEUS
+            model:
+              datasource:
+                type: prometheus
+                uid: DS_PROMETHEUS
+              editorMode: code
+              expr: "ssl_certificate_chain_verified{job=~\"^(prometheus[_-])?ssl[_-]exporter$\"} == 0"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: "SSL certificate chain verification failed"
+          description: "TLS certificate chain verification failed for {{ $labels.source }} {{ $labels.target }}."
+        labels:
+          severity: warning
+        isPaused: false
+
+      - uid: ssl-cert-expires-soon
+        title: SslCertificateExpiresSoon
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1800
+              to: 0
+            datasourceUid: DS_PROMETHEUS
+            model:
+              datasource:
+                type: prometheus
+                uid: DS_PROMETHEUS
+              editorMode: code
+              expr: "ssl_certificate_expires_in_seconds{job=~\"^(prometheus[_-])?ssl[_-]exporter$\",chain_index=\"0\"} < 14 * 24 * 60 * 60 and ssl_certificate_expires_in_seconds{job=~\"^(prometheus[_-])?ssl[_-]exporter$\",chain_index=\"0\"} >= 0"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 30m
+        annotations:
+          summary: "SSL certificate expires soon"
+          description: "SSL certificate for {{ $labels.target }} expires in less than 14 days."
+        labels:
+          severity: warning
+        isPaused: false
+
+      - uid: ssl-cert-expires-critical
+        title: SslCertificateExpiresCritical
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1800
+              to: 0
+            datasourceUid: DS_PROMETHEUS
+            model:
+              datasource:
+                type: prometheus
+                uid: DS_PROMETHEUS
+              editorMode: code
+              expr: "ssl_certificate_expires_in_seconds{job=~\"^(prometheus[_-])?ssl[_-]exporter$\",chain_index=\"0\"} < 2 * 24 * 60 * 60 and ssl_certificate_expires_in_seconds{job=~\"^(prometheus[_-])?ssl[_-]exporter$\",chain_index=\"0\"} >= 0"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: "SSL certificate expires very soon"
+          description: "SSL certificate for {{ $labels.target }} expires in less than 2 days."
+        labels:
+          severity: critical
+        isPaused: false
+
+      - uid: ssl-cert-expired
+        title: SslCertificateExpired
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1800
+              to: 0
+            datasourceUid: DS_PROMETHEUS
+            model:
+              datasource:
+                type: prometheus
+                uid: DS_PROMETHEUS
+              editorMode: code
+              expr: "ssl_certificate_expires_in_seconds{job=~\"^(prometheus[_-])?ssl[_-]exporter$\",chain_index=\"0\"} < 0"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        annotations:
+          summary: "SSL certificate expired"
+          description: "SSL certificate for {{ $labels.target }} is expired."
+        labels:
+          severity: critical
+        isPaused: false
+
+      - uid: ssl-file-source-down
+        title: SslFileSourceDown
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1800
+              to: 0
+            datasourceUid: DS_PROMETHEUS
+            model:
+              datasource:
+                type: prometheus
+                uid: DS_PROMETHEUS
+              editorMode: code
+              expr: "ssl_file_up{job=~\"^(prometheus[_-])?ssl[_-]exporter$\"} == 0"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: "SSL file source is unavailable"
+          description: "prometheus-ssl-exporter cannot read one or more configured certificate files on {{ $labels.instance }}."
+        labels:
+          severity: warning
+        isPaused: false
+
+      - uid: ssl-file-source-invalid
+        title: SslFileSourceInvalid
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1800
+              to: 0
+            datasourceUid: DS_PROMETHEUS
+            model:
+              datasource:
+                type: prometheus
+                uid: DS_PROMETHEUS
+              editorMode: code
+              expr: "ssl_file_up{job=~\"^(prometheus[_-])?ssl[_-]exporter$\"} == 1 and ssl_file_valid{job=~\"^(prometheus[_-])?ssl[_-]exporter$\"} == 0"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: "SSL file source is readable but invalid"
+          description: "prometheus-ssl-exporter can read configured certificate files on {{ $labels.instance }}, but at least one file did not produce valid certificate data."
+        labels:
+          severity: warning
+        isPaused: false
+
+      - uid: ssl-target-source-down
+        title: SslTargetSourceDown
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1800
+              to: 0
+            datasourceUid: DS_PROMETHEUS
+            model:
+              datasource:
+                type: prometheus
+                uid: DS_PROMETHEUS
+              editorMode: code
+              expr: "ssl_target_consecutive_failures{job=~\"^(prometheus[_-])?ssl[_-]exporter$\"} >= 3"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: "SSL target source is unavailable"
+          description: "prometheus-ssl-exporter cannot collect TLS target {{ $labels.target }} after repeated attempts."
+        labels:
+          severity: warning
+        isPaused: false
+
+      - uid: ssl-target-source-invalid
+        title: SslTargetSourceInvalid
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1800
+              to: 0
+            datasourceUid: DS_PROMETHEUS
+            model:
+              datasource:
+                type: prometheus
+                uid: DS_PROMETHEUS
+              editorMode: code
+              expr: "ssl_target_up{job=~\"^(prometheus[_-])?ssl[_-]exporter$\"} == 1 and ssl_target_valid{job=~\"^(prometheus[_-])?ssl[_-]exporter$\"} == 0"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 10m
+        annotations:
+          summary: "SSL target source is readable but invalid"
+          description: "prometheus-ssl-exporter collected configured TLS targets on {{ $labels.instance }}, but at least one target did not produce valid certificate data."
+        labels:
+          severity: warning
+        isPaused: false
+
+      - uid: ssl-source-read-errors
+        title: SslSourceReadErrors
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1800
+              to: 0
+            datasourceUid: DS_PROMETHEUS
+            model:
+              datasource:
+                type: prometheus
+                uid: DS_PROMETHEUS
+              editorMode: code
+              expr: "increase(ssl_file_read_errors_total{job=~\"^(prometheus[_-])?ssl[_-]exporter$\"}[30m]) > 0 or max_over_time(ssl_target_consecutive_failures{job=~\"^(prometheus[_-])?ssl[_-]exporter$\"}[30m]) >= 3"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 0m
+        annotations:
+          summary: "SSL source read errors observed"
+          description: "prometheus-ssl-exporter observed one or more file read or target collection errors in the last 30 minutes."
+        labels:
+          severity: warning
+        isPaused: false
+
+      - uid: ssl-source-parse-errors
+        title: SslSourceParseErrors
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 1800
+              to: 0
+            datasourceUid: DS_PROMETHEUS
+            model:
+              datasource:
+                type: prometheus
+                uid: DS_PROMETHEUS
+              editorMode: code
+              expr: "increase(ssl_file_parse_errors_total{job=~\"^(prometheus[_-])?ssl[_-]exporter$\"}[30m]) > 0 or increase(ssl_target_parse_errors_total{job=~\"^(prometheus[_-])?ssl[_-]exporter$\"}[30m]) > 0"
+              instant: true
+              intervalMs: 1000
+              legendFormat: __auto
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: C
+            relativeTimeRange:
+              from: 0
+              to: 0
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 0m
+        annotations:
+          summary: "SSL source parse errors observed"
+          description: "prometheus-ssl-exporter observed one or more certificate parse errors in the last 30 minutes."
+        labels:
+          severity: warning
+        isPaused: false

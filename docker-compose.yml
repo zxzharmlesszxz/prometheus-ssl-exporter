@@ -50,6 +50,7 @@ services:
         target: /etc/grafana/provisioning/dashboards/dashboards.yml
     volumes:
       - ./examples/grafana/:/var/lib/grafana/dashboards/:ro
+      - ./examples/grafana/alerting/:/etc/grafana/provisioning/alerting/:ro
     depends_on:
       prometheus:
         condition: service_started
