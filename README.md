@@ -174,8 +174,11 @@ contract lives in [`METRICS.md`](METRICS.md).
 ## Docker Compose
 
 The repository includes [`docker-compose.yml`](docker-compose.yml) for local testing.
-The Prometheus scrape config is embedded in Compose, while alerting rules live
-under [`examples/prometheus`](examples/prometheus).
+The Prometheus scrape config is embedded in Compose, while Prometheus alerting
+rules live under [`examples/prometheus`](examples/prometheus). Grafana-managed
+alert rules live under [`examples/grafana/alerting`](examples/grafana/alerting)
+and mirror the Prometheus rule intent for teams that route notifications through
+Grafana Alerting.
 The bundled rules cover exporter availability, framework collection
 failure/staleness, certificate validity/expiry/chain failures, and file/target
 source health.
@@ -206,14 +209,16 @@ Docker Compose provisions Grafana with:
 
 - Prometheus datasource `DS_PROMETHEUS`
 - dashboards from [`examples/grafana`](examples/grafana)
-- alert rules from [`examples/grafana-alerting`](examples/grafana-alerting)
+- alert rules from [`examples/grafana/alerting`](examples/grafana/alerting)
 - default login `admin` / `admin`
 
 Open `http://localhost:3000` after `make compose`.
 The main dashboard uses the Grafana v2 dashboard resource model and includes
-certificate/source status stats, certificate inventory, source-health graphs,
-historical changes, exporter collection health, Go runtime panels, and
-Prometheus scrape health.
+certificate/source status stats, a target-first certificate status overview,
+a detailed certificate inventory tab, source-health graphs, historical changes,
+exporter collection health, Go runtime panels, and Prometheus scrape health.
+Grafana alert rules are provisioned as standalone Grafana-managed rules in the
+`Exporters` folder; they are not attached to dashboard panels.
 
 For a direct Docker build, run:
 

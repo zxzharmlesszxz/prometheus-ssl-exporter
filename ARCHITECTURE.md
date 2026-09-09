@@ -113,13 +113,26 @@ Overview tab contains:
 
 - `Status`: exporter availability and collection age.
 - `Main Metrics`: configured source stats, failed checks, chain failures,
-  certificate expiry stats, certificate inventory, source health by type, and
-  leaf certificate expiry views.
+  certificate expiry stats, a target-first certificate status table, source
+  health by type, and leaf certificate expiry views.
 - `Source Health`: shared file/target source-health graphs powered by
   `ssl_file_*` and `ssl_target_*` metrics.
 - `Historical Graph`: collapsed change graphs for checks, chain verification,
   and validity windows.
 - `Exporter Collection`: collapsed framework collection metrics.
 
+The Inventory tab contains the detailed certificate table with identity labels,
+expiry timestamps, verification state, and last-known-good freshness fields.
 The Runtime and Scrape tabs contain Go/process runtime panels and
 Prometheus-side scrape health.
+
+## Alerting Shape
+
+Prometheus alert rules live in `examples/prometheus` and are loaded by the
+Compose Prometheus config. Grafana-managed alert rules live in
+`examples/grafana/alerting` and are mounted into Grafana's alerting provisioning
+directory by Compose.
+
+Both rule sets cover the same exporter, collection, certificate, and source
+health semantics. Grafana rules are standalone alerting resources in the
+`Exporters` folder; they are not bound to dashboard panel IDs.
